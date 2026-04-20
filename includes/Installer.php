@@ -9,6 +9,7 @@ class Installer {
      */
     public function run() {
         $this->create_tables();
+        $this->add_db_columns();
     }
 
     /**
@@ -42,6 +43,27 @@ class Installer {
 
         foreach ( $table_schema as $table ) {
             dbDelta( $table );
+        }
+    /**
+     * Add necessary columns to existing WP-ERP tables
+     */
+    private function add_db_columns() {
+        global $wpdb;
+
+        $table_name = "{$wpdb->prefix}erp_hr_leave_requests";
+        
+        $columns = [
+            'required_approver' => "bigint(20) UNSIGNED DEFAULT NULL",
+            'approval_status'   => "varchar(20) DEFAULT NULL", // Pending, Approved, Rejected
+            'approval_message'  => "text DEFAULT NULL",
+        ];
+
+        foreach ( $columns as $column => $definition ) {
+            $row = $wpdb->get_results( "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '$table_name' AND column_name = '$column'" );
+
+            if ( empty( $row ) ) {
+                $wpdb->query( "ALTER TABLE `$table_name` ADD `$column` $definition" );
+            }
         }
     }
 }

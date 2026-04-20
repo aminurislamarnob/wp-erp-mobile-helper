@@ -191,6 +191,7 @@ final class WpErpAppHelper {
         $this->container['standup_api'] = new StandupTrackerController();
         $this->container['hrm_api'] = new HrmController();
         $this->container['roles'] = new Roles();
+        $this->container['leave_approval'] = new LeaveApprovalManager();
     }
 
     /**
