@@ -90,6 +90,10 @@ final class WpErpAppHelper {
         if ( $this->has_woocommerce() ) {
             $this->flush_rewrite_rules();
         }
+
+        // Run installer
+        $installer = new Installer();
+        $installer->run();
     }
 
     /**
@@ -103,6 +107,7 @@ final class WpErpAppHelper {
 	 */
 	public function register_rest_route() {
 		$this->container['auth']->register_routes();
+        $this->container['standup_api']->register_routes();
 	}
 
     /**
@@ -181,6 +186,8 @@ final class WpErpAppHelper {
     public function init_classes() {
         $this->container['scripts'] = new Assets();
         $this->container['auth']    = new Auth();
+        $this->container['standup'] = new Standup();
+        $this->container['standup_api'] = new StandupTrackerController();
     }
 
     /**

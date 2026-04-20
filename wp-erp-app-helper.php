@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Wp Erp App Helper
+ * Plugin Name: WP ERP App Helper
  * Plugin URI:  https://welabs.dev
  * Description: Custom plugin by weLabs
  * Version: 0.0.1
@@ -9,7 +9,7 @@
  * Text Domain: wp-erp-app-helper
  * WC requires at least: 5.0.0
  * Domain Path: /languages/
- * Requires Plugins: erp
+ * Requires Plugins:
  * License: GPL2
  */
 use WeLabs\WpErpAppHelper\WpErpAppHelper;
