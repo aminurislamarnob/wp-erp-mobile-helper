@@ -91,6 +91,39 @@
 
     $(document).ready(function() {
         LeaveApproval.init();
+
+        // Inject status for employee history table
+        if ($('#erp-hr-empl-leave-history-table').length) {
+            $.ajax({
+                url: erpAppHelper.ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'erp_app_helper_get_employee_approval_status',
+                    nonce: erpAppHelper.nonce
+                },
+                success: function(response) {
+                    if (response.success && response.data.length) {
+                        $('#erp-hr-empl-leave-history-table tbody tr').each(function() {
+                            var $row = $(this);
+                            var dateRange = $row.find('td:first').text().trim();
+                            var policyName = $row.find('td:nth-child(2)').text().trim();
+                            
+                            // Replace en-dash with em-dash or safe dash for comparison if needed
+                            dateRange = dateRange.replace(/\u2013|\u2014/g, "—"); // Standardize dashes
+
+                            response.data.forEach(function(item) {
+                                var itemDate = item.date_range.replace(/\u2013|\u2014/g, "—");
+                                if (dateRange === itemDate && policyName === item.leave_name) {
+                                    var $statusCell = $row.find('td:last');
+                                    var note = '<div style="font-size: 11px; margin-top: 4px; color: #666; font-style: italic;">(Waiting for: ' + item.approver_name + ')</div>';
+                                    $statusCell.append(note);
+                                }
+                            });
+                        });
+                    }
+                }
+            });
+        }
     });
 
 })(jQuery);

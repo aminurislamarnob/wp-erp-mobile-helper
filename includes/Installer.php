@@ -44,6 +44,7 @@ class Installer {
         foreach ( $table_schema as $table ) {
             dbDelta( $table );
         }
+    }
     /**
      * Add necessary columns to existing WP-ERP tables
      */
