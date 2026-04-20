@@ -190,6 +190,7 @@ final class WpErpAppHelper {
         $this->container['standup'] = new Standup();
         $this->container['standup_api'] = new StandupTrackerController();
         $this->container['hrm_api'] = new HrmController();
+        $this->container['roles'] = new Roles();
     }
 
     /**
