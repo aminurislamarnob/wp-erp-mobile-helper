@@ -15,6 +15,10 @@ class Roles {
         
         // Ensure role is added to WordPress
         add_action( 'admin_init', [ $this, 'add_team_lead_role_to_wp' ] );
+
+        // User profile role section
+        add_action( 'erp_user_profile_role', [ $this, 'display_role_checkbox' ] );
+        add_action( 'erp_update_user', [ $this, 'save_role_checkbox' ] );
     }
 
     /**
@@ -102,6 +106,53 @@ class Roles {
     public function add_team_lead_role_to_wp() {
         if ( ! get_role( 'erp_team_lead' ) ) {
             add_role( 'erp_team_lead', __( 'Team Lead', 'wp-erp-app-helper' ), erp_hr_get_caps_for_role( 'erp_team_lead' ) );
+        }
+    }
+
+    /**
+     * Display role checkbox on user profile
+     *
+     * @param WP_User $profileuser
+     * @return void
+     */
+    public function display_role_checkbox( $profileuser ) {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        $checked = in_array( 'erp_team_lead', $profileuser->roles ) ? 'checked' : ''; ?>
+        <label for="erp-team-lead">
+            <input type="checkbox" id="erp-team-lead" <?php echo esc_attr( $checked ); ?> name="erp_team_lead"
+                   value="erp_team_lead">
+            <span class="description"><?php esc_html_e( 'Team Lead', 'wp-erp-app-helper' ); ?></span>
+        </label>
+        <?php
+    }
+
+    /**
+     * Save role checkbox
+     *
+     * @param int $user_id
+     * @return void
+     */
+    public function save_role_checkbox( $user_id ) {
+        // verify nonce (WP-ERP uses user_profile_update_role nonce)
+        if ( ! isset( $_REQUEST['_erp_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_REQUEST['_erp_nonce'] ), 'user_profile_update_role' ) ) {
+            return;
+        }
+
+        // Bail if current user cannot promote the passing user
+        if ( ! current_user_can( 'promote_user', $user_id ) ) {
+            return;
+        }
+
+        $user = get_user_by( 'id', $user_id );
+        $new_role = isset( $_POST['erp_team_lead'] ) ? sanitize_text_field( wp_unslash( $_POST['erp_team_lead'] ) ) : false;
+
+        if ( $new_role ) {
+            $user->add_role( $new_role );
+        } else {
+            $user->remove_role( 'erp_team_lead' );
         }
     }
 }
