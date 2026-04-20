@@ -149,3 +149,32 @@
     color: #c62828;
     border-color: #ef9a9a;
 }
+.erp-app-helper-modal-modern {
+    max-width: 500px;
+}
+
+.erp-app-helper-modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #333;
+}
+
+.erp-app-helper-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #999;
+}
+
+.erp-app-helper-close:hover {
+    color: #333;
+}
+
+.erp-app-helper-form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-family: inherit;
+}

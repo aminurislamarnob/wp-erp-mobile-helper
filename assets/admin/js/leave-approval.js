@@ -8,9 +8,17 @@
             $(document).on('click', '#erp-app-helper-modal-close', this.closeModal.bind(this));
             $(document).on('click', '#erp-app-helper-modal-save', this.saveApproval.bind(this));
             
+            // New Action Modal
+            $(document).on('click', '.erp-app-helper-action-btn', this.openActionModal.bind(this));
+            $(document).on('click', '#erp-app-helper-action-modal-close, #erp-app-helper-action-modal-cancel', this.closeActionModal.bind(this));
+            $(document).on('click', '#erp-app-helper-action-modal-save', this.processAction.bind(this));
+
             // Close on escape
             $(document).keyup(function(e) {
-                if (e.keyCode === 27) self.closeModal();
+                if (e.keyCode === 27) {
+                    self.closeModal();
+                    self.closeActionModal();
+                }
             });
         },
 
@@ -86,6 +94,75 @@
                     $btn.prop('disabled', false).text(erpAppHelper.i18n.save);
                 }
             });
+        },
+
+        openActionModal: function(e) {
+            e.preventDefault();
+            var $btn = $(e.currentTarget);
+            var action = $btn.data('action'); // 'approve' or 'reject'
+            var id = $btn.data('id');
+            var name = $btn.data('name');
+
+            $('#erp-app-helper-action-request-id').val(id);
+            $('#erp-app-helper-action-type').val(action);
+            $('#erp-app-helper-action-employee-name').text(name);
+
+            if (action === 'approve') {
+                $('#erp-app-helper-action-title').text(erpAppHelper.i18n.approveTitle);
+                $('#erp-app-helper-action-label').text(erpAppHelper.i18n.approveLabel);
+                $('#erp-app-helper-action-modal-save').removeClass('button-secondary').addClass('button-primary').text(erpAppHelper.i18n.approve);
+            } else {
+                $('#erp-app-helper-action-title').text(erpAppHelper.i18n.rejectTitle);
+                $('#erp-app-helper-action-label').text(erpAppHelper.i18n.rejectLabel);
+                $('#erp-app-helper-action-modal-save').removeClass('button-primary').addClass('button-secondary').text(erpAppHelper.i18n.reject);
+            }
+
+            $('#erp-app-helper-action-modal').fadeIn();
+            $('#erp-app-helper-action-message').val('').focus();
+        },
+
+        closeActionModal: function() {
+            $('#erp-app-helper-action-modal').fadeOut();
+        },
+
+        processAction: function(e) {
+            var self = this;
+            var requestId = $('#erp-app-helper-action-request-id').val();
+            var actionType = $('#erp-app-helper-action-type').val();
+            var message = $('#erp-app-helper-action-message').val();
+
+            if (actionType === 'reject' && !message.trim()) {
+                alert(erpAppHelper.i18n.rejectLabel);
+                return;
+            }
+
+            var $btn = $(e.currentTarget);
+            var originalText = $btn.text();
+            $btn.prop('disabled', true).text(erpAppHelper.i18n.loading);
+
+            $.ajax({
+                url: erpAppHelper.ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'erp_app_helper_process_leave_action',
+                    request_id: requestId,
+                    action_type: actionType,
+                    message: message,
+                    nonce: erpAppHelper.nonce
+                },
+                success: function(response) {
+                    if (response.success) {
+                        alert(response.data);
+                        self.closeActionModal();
+                        location.reload();
+                    } else {
+                        alert(response.data);
+                    }
+                },
+                complete: function() {
+                    $btn.prop('disabled', false).text(originalText);
+                }
+            });
         }
     };
 
@@ -115,7 +192,8 @@
                                 var itemDate = item.date_range.replace(/\u2013|\u2014/g, "—");
                                 if (dateRange === itemDate && policyName === item.leave_name) {
                                     var $statusCell = $row.find('td:last');
-                                    var note = '<div style="font-size: 11px; margin-top: 4px; color: #666; font-style: italic;">(Waiting for: ' + item.approver_name + ')</div>';
+                                    var label = item.status === 'Pending' ? 'Waiting for: ' : item.status + ' by: ';
+                                    var note = '<div style="font-size: 11px; margin-top: 4px; color: #666; font-style: italic;">(' + label + item.approver_name + ')</div>';
                                     $statusCell.append(note);
                                 }
                             });

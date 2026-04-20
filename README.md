@@ -6,11 +6,15 @@ The WP ERP App Helper plugin provides extended functionality for the WP ERP ecos
 
 ### Human Resource Management (HRM)
 - **Daily Standup Tracker**: Integrated tool to record and monitor daily standup meetings with aggregate monthly reporting.
-- **Attendance & Shift Integration**: leverages WP-ERP's internal shift logic to ensure tracking is context-aware.
+- **Attendance & Shift Integration**: Leverages WP-ERP's internal shift logic to ensure tracking is context-aware.
+- **Intermediate Leave Approval**: Adds a modern "Team Lead" approval workflow. Leave requests can be assigned to a specific approver before final HR processing.
+- **Team Lead Role**: New dedicated local role for managing department-level approvals without granting full HR Manager permissions.
+- **Custom Approver Dashboard**: A dedicated workspace for Team Leads to manage pending, approved, and rejected requests with reason-based feedback.
+- **Employee Transparency**: Live status tracking for employees, showing exactly where their request is in the approval chain (Waiting for, Approved by, or Rejected by).
 
-### Reporting & Analytics
-- **Monthly Standup Reports**: Generate and download detailed CSV reports of employee attendance, absences, and leaves.
-- **Historical Analysis**: Full month-by-month history navigation for standup records.
+### REST API (App Integration)
+- **Mobile-Ready Endpoints**: Fully documented API (`/erp-app/v1/hrm/...`) for fetching pending and rejected leaves, complete with intermediate approval status and messages.
+- **Enhanced Data Injection**: Seamless integration with core WP-ERP endpoints to include "Required Approval" metadata in standard JSON responses.
 
 ---
 
