@@ -61,6 +61,232 @@
         }
     });
 
+    // Download PDF
+    document.getElementById('btn-download-pdf').addEventListener('click', async () => {
+        const month = document.getElementById('st-report-month').value;
+        const btn = document.getElementById('btn-download-pdf');
+        const originalText = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = `<span class="dashicons dashicons-update st-spin st-btn-icon-right"></span> Generating...`;
+
+        try {
+            const res = await fetch(`${restUrl}/report?month=${month}`, {
+                headers: { 'X-WP-Nonce': nonce }
+            });
+            const data = await res.json();
+            
+            if (data.stats && data.stats.length > 0) {
+                await generatePDF(data, month);
+                closeModal();
+            } else {
+                alert('No data found for the selected month.');
+            }
+        } catch(e) {
+            console.error(e);
+            alert('Failed to generate PDF.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    });
+
+    async function generatePDF(data, month) {
+        const { jsPDF } = window.jspdf;
+
+        // ── A4 layout constants ──────────────────────────────────────
+        const doc        = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+        const pageW      = doc.internal.pageSize.getWidth();   // 210
+        const pageH      = doc.internal.pageSize.getHeight();  // 297
+        const margin     = 14;
+        const contentW   = pageW - margin * 2;                 // 182
+        let   y          = margin;
+
+        // ── Helper: set colour from hex ──────────────────────────────
+        function hexRGB(hex) {
+            const n = parseInt(hex.replace('#',''), 16);
+            return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+        }
+
+        // ── Fetch & rasterise SVG logo → PNG dataURL ─────────────────
+        let logoPng = null;
+        try {
+            const svgRes  = await fetch('https://welabs.dev/wp-content/uploads/2025/11/welabs-logo.svg');
+            const svgText = await svgRes.text();
+            const blob    = new Blob([svgText], { type: 'image/svg+xml' });
+            const objUrl  = URL.createObjectURL(blob);
+            const img     = new Image();
+            await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = objUrl; });
+            const cvs = document.createElement('canvas');
+            cvs.width = img.naturalWidth * 3; cvs.height = img.naturalHeight * 3;
+            cvs.getContext('2d').drawImage(img, 0, 0, cvs.width, cvs.height);
+            logoPng = cvs.toDataURL('image/png');
+            URL.revokeObjectURL(objUrl);
+        } catch (e) { /* logo missing — continue without */ }
+
+        // ── Compute stats ─────────────────────────────────────────────
+        let totalPct = 0;
+        const rows = data.stats.map(s => {
+            const attend = parseInt(s.attend);
+            const absent = parseInt(s.absent);
+            const total  = attend + absent;
+            const pct    = total > 0 ? (attend / total * 100) : 0;
+            totalPct += pct;
+            return { name: s.name, attend: s.attend, absent: s.absent, leave: s.leave, pctStr: pct.toFixed(2) + '%' };
+        });
+        const globalAvg = rows.length > 0 ? (totalPct / rows.length).toFixed(2) + '%' : '0.00%';
+
+        // ════════════════════════════════════════════════════════════════
+        //  HEADER
+        // ════════════════════════════════════════════════════════════════
+        if (logoPng) {
+            // Logo: natural aspect ratio, ~ 38 mm wide
+            const logoW = 38, logoH = 38 * (34 / 156); // SVG viewBox 156×34
+            doc.addImage(logoPng, 'PNG', margin, y, logoW, logoH);
+        }
+
+        // Title (right-aligned, vertically centred in header row)
+        const [r1, g1, b1] = hexRGB('#111b3a');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.setTextColor(r1, g1, b1);
+        doc.text('DAILY STANDUP REPORT', pageW - margin, y + 4, { align: 'right' });
+
+        const [r2, g2, b2] = hexRGB('#646970');
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(r2, g2, b2);
+        doc.text(`Report for ${month}`, pageW - margin, y + 10, { align: 'right' });
+
+        y += 16;
+
+        // Divider
+        doc.setDrawColor(r1, g1, b1);
+        doc.setLineWidth(0.5);
+        doc.line(margin, y, pageW - margin, y);
+        y += 8;
+
+        // ════════════════════════════════════════════════════════════════
+        //  SUMMARY CARDS  (3 equal columns)
+        // ════════════════════════════════════════════════════════════════
+        const cardGap = 4;
+        const cardW   = (contentW - cardGap * 2) / 3;
+        const cardH   = 18;
+        const cards   = [
+            { label: 'TOTAL WORKING DAYS', value: String(data.total_working_days) },
+            { label: 'TOTAL EMPLOYEES',    value: String(data.stats.length)        },
+            { label: 'AVG. ATTENDANCE',    value: globalAvg                        },
+        ];
+
+        cards.forEach((card, i) => {
+            const x = margin + i * (cardW + cardGap);
+
+            // card background + border
+            doc.setFillColor(248, 249, 250);
+            doc.setDrawColor(233, 236, 239);
+            doc.setLineWidth(0.3);
+            doc.roundedRect(x, y, cardW, cardH, 2, 2, 'FD');
+
+            // label
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(7);
+            doc.setTextColor(r2, g2, b2);
+            doc.text(card.label, x + cardW / 2, y + 6, { align: 'center' });
+
+            // value
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.setTextColor(r1, g1, b1);
+            doc.text(card.value, x + cardW / 2, y + 14, { align: 'center' });
+        });
+
+        y += cardH + 8;
+
+        // ════════════════════════════════════════════════════════════════
+        //  ATTENDANCE TABLE
+        // ════════════════════════════════════════════════════════════════
+        const cols = [
+            { label: 'Employee Name', w: contentW * 0.40, align: 'left'   },
+            { label: 'Present',       w: contentW * 0.15, align: 'center' },
+            { label: 'Absent',        w: contentW * 0.15, align: 'center' },
+            { label: 'Leave',         w: contentW * 0.15, align: 'center' },
+            { label: 'Attendance %',  w: contentW * 0.15, align: 'center' },
+        ];
+        const rowH   = 7.5;
+        const cellPX = 2.5;   // horizontal cell padding
+
+        // — Table header row —
+        doc.setFillColor(r1, g1, b1);
+        doc.rect(margin, y, contentW, rowH, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(255, 255, 255);
+
+        let cx = margin;
+        cols.forEach(col => {
+            const tx = col.align === 'center' ? cx + col.w / 2 : cx + cellPX;
+            doc.text(col.label.toUpperCase(), tx, y + rowH / 2, { align: col.align, baseline: 'middle' });
+            cx += col.w;
+        });
+        y += rowH;
+
+        // — Data rows —
+        const [dr, dg, db] = hexRGB('#dee2e6');
+        rows.forEach((row, i) => {
+            // new page guard
+            if (y + rowH > pageH - margin) {
+                doc.addPage();
+                y = margin;
+            }
+
+            // alternating zebra
+            if (i % 2 === 1) {
+                doc.setFillColor(249, 249, 249);
+                doc.rect(margin, y, contentW, rowH, 'F');
+            }
+
+            // row text
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.setTextColor(50, 50, 50);
+
+            const cellValues = [row.name, String(row.attend), String(row.absent), String(row.leave), row.pctStr];
+            cx = margin;
+            cols.forEach((col, ci) => {
+                const tx = col.align === 'center' ? cx + col.w / 2 : cx + cellPX;
+                doc.text(cellValues[ci], tx, y + rowH / 2, { align: col.align, baseline: 'middle' });
+                cx += col.w;
+            });
+
+            // bottom border
+            doc.setDrawColor(dr, dg, db);
+            doc.setLineWidth(0.2);
+            doc.line(margin, y + rowH, margin + contentW, y + rowH);
+
+            y += rowH;
+        });
+
+        // ════════════════════════════════════════════════════════════════
+        //  FOOTER
+        // ════════════════════════════════════════════════════════════════
+        y += 6;
+        if (y + 10 > pageH - margin) { doc.addPage(); y = margin; }
+
+        doc.setDrawColor(dr, dg, db);
+        doc.setLineWidth(0.3);
+        doc.line(margin, y, pageW - margin, y);
+        y += 5;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(173, 181, 189);
+        doc.text(`Generated on ${new Date().toLocaleString()}`, pageW / 2, y, { align: 'center' });
+
+        // ── Save ──────────────────────────────────────────────────────
+        doc.save(`standup-report-${month}.pdf`);
+    }
+
     function downloadCSV(data, month) {
         const headers = ['Name', 'Attend', 'Absent', 'Leave', 'Total Working Days', '% of Attend'];
         const rows = data.stats.map(s => {

@@ -106,11 +106,60 @@
             </div>
             <div class="st-modal-footer">
                 <button class="st-btn st-btn-secondary btn-modal-close"><?php esc_html_e('Cancel', 'wp-erp-app-helper'); ?></button>
+                <button class="st-btn st-btn-primary" id="btn-download-pdf">
+                    <span class="dashicons dashicons-printer st-btn-icon-right"></span>
+                    <?php esc_html_e('Print PDF', 'wp-erp-app-helper'); ?>
+                </button>
                 <button class="st-btn st-btn-primary" id="btn-download-csv">
                     <span class="dashicons dashicons-download st-btn-icon-right"></span>
                     <?php esc_html_e('Download CSV', 'wp-erp-app-helper'); ?>
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Hidden PDF Template -->
+    <div id="st-pdf-template" class="st-pdf-template-container">
+        <div class="st-pdf-header">
+            <div class="st-pdf-logo-wrap">
+                <img id="st-pdf-logo" src="" alt="Logo">
+            </div>
+            <div class="st-pdf-header-text">
+                <h1><?php esc_html_e('Daily Standup Report', 'wp-erp-app-helper'); ?></h1>
+                <p id="st-pdf-month-text"></p>
+            </div>
+        </div>
+
+        <div class="st-pdf-summary">
+            <div class="st-pdf-summary-item">
+                <span class="st-pdf-label"><?php esc_html_e('Total Working Days', 'wp-erp-app-helper'); ?></span>
+                <span class="st-pdf-value" id="st-pdf-total-days">0</span>
+            </div>
+            <div class="st-pdf-summary-item">
+                <span class="st-pdf-label"><?php esc_html_e('Total Employees', 'wp-erp-app-helper'); ?></span>
+                <span class="st-pdf-value" id="st-pdf-total-employees">0</span>
+            </div>
+            <div class="st-pdf-summary-item">
+                <span class="st-pdf-label"><?php esc_html_e('Avg. Attendance', 'wp-erp-app-helper'); ?></span>
+                <span class="st-pdf-value" id="st-pdf-avg-attendance">0%</span>
+            </div>
+        </div>
+
+        <table class="st-pdf-table">
+            <thead>
+                <tr>
+                    <th><?php esc_html_e('Employee Name', 'wp-erp-app-helper'); ?></th>
+                    <th><?php esc_html_e('Present', 'wp-erp-app-helper'); ?></th>
+                    <th><?php esc_html_e('Absent', 'wp-erp-app-helper'); ?></th>
+                    <th><?php esc_html_e('Leave', 'wp-erp-app-helper'); ?></th>
+                    <th><?php esc_html_e('Attendance %', 'wp-erp-app-helper'); ?></th>
+                </tr>
+            </thead>
+            <tbody id="st-pdf-tbody"></tbody>
+        </table>
+
+        <div class="st-pdf-footer">
+            <p><?php printf( esc_html__('Generated on %s', 'wp-erp-app-helper'), date('Y-m-d H:i:s') ); ?></p>
         </div>
     </div>
 </div>

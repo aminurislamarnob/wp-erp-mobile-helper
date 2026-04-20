@@ -68,3 +68,25 @@
 .st-field-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 13px; }
 
 .st-modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 15px 20px; background: #f9f9f9; border-top: 1px solid #f0f0f1; }
+
+/* PDF Template Styles - hidden source template */
+#st-pdf-template { display: none; }
+
+.st-pdf-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #111b3a; padding-bottom: 20px; margin-bottom: 30px; }
+.st-pdf-logo-wrap img { width: 150px; height: auto; }
+.st-pdf-header-text { text-align: right; }
+.st-pdf-header-text h1 { margin: 0; color: #111b3a; font-size: 24px; font-weight: 700; text-transform: uppercase; }
+.st-pdf-header-text p { margin: 5px 0 0; color: #646970; font-size: 14px; }
+
+.st-pdf-summary { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 30px; }
+.st-pdf-summary-item { flex: 1; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e9ecef; text-align: center; }
+.st-pdf-label { display: block; font-size: 11px; color: #646970; text-transform: uppercase; margin-bottom: 5px; font-weight: 600; }
+.st-pdf-value { display: block; font-size: 18px; color: #111b3a; font-weight: 700; }
+
+.st-pdf-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+.st-pdf-table th { background: #111b3a; color: #fff; text-align: left; padding: 10px 12px; font-size: 12px; text-transform: uppercase; font-weight: 600; border: 1px solid #111b3a; }
+.st-pdf-table td { padding: 10px 12px; font-size: 12px; border-bottom: 1px solid #dee2e6; border-left: 1px solid #dee2e6; border-right: 1px solid #dee2e6; }
+.st-pdf-table tr:nth-child(even) { background: #fdfdfd; }
+
+.st-pdf-footer { margin-top: 40px; border-top: 1px solid #dee2e6; padding-top: 20px; text-align: center; }
+.st-pdf-footer p { font-size: 10px; color: #adb5bd; margin: 0; }
