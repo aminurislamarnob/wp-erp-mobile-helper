@@ -108,6 +108,7 @@ final class WpErpAppHelper {
 	public function register_rest_route() {
 		$this->container['auth']->register_routes();
         $this->container['standup_api']->register_routes();
+        $this->container['hrm_api']->register_routes();
 	}
 
     /**
@@ -188,6 +189,7 @@ final class WpErpAppHelper {
         $this->container['auth']    = new Auth();
         $this->container['standup'] = new Standup();
         $this->container['standup_api'] = new StandupTrackerController();
+        $this->container['hrm_api'] = new HrmController();
     }
 
     /**

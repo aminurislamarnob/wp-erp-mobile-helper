@@ -163,3 +163,23 @@ Get aggregate report for a month.
         ]
     }
     ```
+
+---
+
+## HRM (Leaves)
+
+These endpoints provide leave request data with status filtering. Requires valid Bearer token and relevant permissions.
+
+### 1. Get Pending Leaves
+Get all pending leave requests for a specific employee.
+
+- **Endpoint:** `GET /hrm/employees/{user_id}/pending-leaves`
+- **Headers:** `Authorization: Bearer <token>`
+- **Response:** Array of leave request objects.
+
+### 2. Get Rejected Leaves
+Get all rejected leave requests for a specific employee.
+
+- **Endpoint:** `GET /hrm/employees/{user_id}/rejected-leaves`
+- **Headers:** `Authorization: Bearer <token>`
+- **Response:** Array of leave request objects.
