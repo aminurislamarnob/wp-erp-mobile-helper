@@ -14,18 +14,20 @@ class RequiredApprovalListTable extends \WP_List_Table {
      * Constructor
      */
     public function __construct() {
-        parent::__construct( [
-            'singular' => __( 'leave approval', 'wp-erp-app-helper' ),
-            'plural'   => __( 'leave approvals', 'wp-erp-app-helper' ),
-            'ajax'     => false
-        ] );
+        parent::__construct(
+            [
+				'singular' => __( 'leave approval', 'wp-erp-app-helper' ),
+				'plural'   => __( 'leave approvals', 'wp-erp-app-helper' ),
+				'ajax'     => false,
+			]
+        );
     }
 
     /**
      * Message to show if no items found
      */
     public function no_items() {
-        _e( 'No leave requests found that require your approval.', 'wp-erp-app-helper' );
+        esc_html_e( 'No leave requests found that require your approval.', 'wp-erp-app-helper' );
     }
 
     /**
@@ -51,19 +53,21 @@ class RequiredApprovalListTable extends \WP_List_Table {
         global $wpdb;
         $current_user_id = get_current_user_id();
 
-        $counts = $wpdb->get_results( $wpdb->prepare(
-            "SELECT approval_status, COUNT(*) as count 
+        $counts = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT approval_status, COUNT(*) as count 
             FROM {$wpdb->prefix}erp_hr_leave_requests 
             WHERE required_approver = %d 
             GROUP BY approval_status",
-            $current_user_id
-        ), OBJECT_K );
+                $current_user_id
+            ), OBJECT_K
+        );
 
         $pending_count  = isset( $counts['Pending'] ) ? $counts['Pending']->count : 0;
         $approved_count = isset( $counts['Approved'] ) ? $counts['Approved']->count : 0;
         $rejected_count = isset( $counts['Rejected'] ) ? $counts['Rejected']->count : 0;
 
-        $current = isset( $_GET['status'] ) ? $_GET['status'] : 'Pending';
+        $current = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : 'Pending'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
         $views = [
             'Pending'  => sprintf( '<a href="%s" class="%s">%s <span class="count">(%d)</span></a>', admin_url( 'admin.php?page=erp-hr&section=leave-approvals&status=Pending' ), ( 'Pending' === $current ? 'current' : '' ), __( 'Pending', 'wp-erp-app-helper' ), $pending_count ),
@@ -86,17 +90,19 @@ class RequiredApprovalListTable extends \WP_List_Table {
         $this->_column_headers = [ $columns, $hidden, $sortable ];
 
         $current_user_id = get_current_user_id();
-        $status = isset( $_GET['status'] ) ? sanitize_text_field( $_GET['status'] ) : 'Pending';
+        $status = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : 'Pending'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
         // Fetch leave requests where current user is the required approver
-        $results = $wpdb->get_results( $wpdb->prepare(
-            "SELECT r.*, l.name as leave_name, u.display_name as employee_name
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT r.*, l.name as leave_name, u.display_name as employee_name
             FROM {$wpdb->prefix}erp_hr_leave_requests r
             LEFT JOIN {$wpdb->prefix}erp_hr_leaves l ON r.leave_id = l.id
             LEFT JOIN {$wpdb->users} u ON r.user_id = u.ID
             WHERE r.required_approver = %d AND r.approval_status = %s",
-            $current_user_id, $status
-        ) );
+                $current_user_id, $status
+            )
+        );
 
         $this->items = $results;
     }
@@ -116,7 +122,7 @@ class RequiredApprovalListTable extends \WP_List_Table {
                 return '<em>' . esc_html( $item->reason ) . '</em>';
             case 'status':
                 $status = $item->approval_status ? $item->approval_status : 'Pending';
-                $class = 'status-' . strtolower($status);
+                $class = 'status-' . strtolower( $status );
                 return sprintf( '<span class="erp-app-helper-approval-badge %s">%s</span>', $class, $status );
             case 'actions':
                 if ( 'Pending' !== $item->approval_status ) {
@@ -125,8 +131,8 @@ class RequiredApprovalListTable extends \WP_List_Table {
                 return sprintf(
                     '<button type="button" class="button button-primary erp-app-helper-action-btn" data-action="approve" data-id="%d" data-name="%s">%s</button> ' .
                     '<button type="button" class="button erp-app-helper-action-btn" data-action="reject" data-id="%d" data-name="%s">%s</button>',
-                    $item->id, esc_attr($item->employee_name), __( 'Approve', 'wp-erp-app-helper' ),
-                    $item->id, esc_attr($item->employee_name), __( 'Reject', 'wp-erp-app-helper' )
+                    $item->id, esc_attr( $item->employee_name ), __( 'Approve', 'wp-erp-app-helper' ),
+                    $item->id, esc_attr( $item->employee_name ), __( 'Reject', 'wp-erp-app-helper' )
                 );
             default:
                 return print_r( $item, true );

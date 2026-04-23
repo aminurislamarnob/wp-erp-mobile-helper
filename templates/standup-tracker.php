@@ -6,17 +6,17 @@
     <div id="st-list-view" class="st-card">
         <div class="st-header">
             <div class="st-header-left">
-                <h2><?php esc_html_e('Standup Overview', 'wp-erp-app-helper'); ?></h2>
-                <input type="month" id="st-month-filter" value="<?php echo date('Y-m'); ?>" max="<?php echo date('Y-m'); ?>">
+                <h2><?php esc_html_e( 'Standup Overview', 'wp-erp-app-helper' ); ?></h2>
+                <input type="month" id="st-month-filter" value="<?php echo gmdate( 'Y-m' ); ?>" max="<?php echo gmdate( 'Y-m' ); ?>">
             </div>
             <div class="st-actions">
                 <button class="st-btn st-btn-secondary" id="btn-show-report">
                     <span class="dashicons dashicons-chart-bar st-btn-icon-right"></span>
-                    <?php esc_html_e('Report', 'wp-erp-app-helper'); ?>
+                    <?php esc_html_e( 'Report', 'wp-erp-app-helper' ); ?>
                 </button>
                 <button class="st-btn st-btn-primary" id="btn-show-add">
                     <span class="dashicons dashicons-plus-alt2 st-btn-icon-right"></span>
-                    <?php esc_html_e('Add Standup', 'wp-erp-app-helper'); ?>
+                    <?php esc_html_e( 'Add Standup', 'wp-erp-app-helper' ); ?>
                 </button>
             </div>
         </div>
@@ -24,18 +24,18 @@
         <table class="st-table st-hidden" id="st-history-table">
             <thead>
                 <tr>
-                    <th><?php esc_html_e('Date', 'wp-erp-app-helper'); ?></th>
-                    <th><?php esc_html_e('Present', 'wp-erp-app-helper'); ?></th>
-                    <th><?php esc_html_e('Absent', 'wp-erp-app-helper'); ?></th>
-                    <th><?php esc_html_e('Leave', 'wp-erp-app-helper'); ?></th>
-                    <th class="st-text-right"><?php esc_html_e('Action', 'wp-erp-app-helper'); ?></th>
+                    <th><?php esc_html_e( 'Date', 'wp-erp-app-helper' ); ?></th>
+                    <th><?php esc_html_e( 'Present', 'wp-erp-app-helper' ); ?></th>
+                    <th><?php esc_html_e( 'Absent', 'wp-erp-app-helper' ); ?></th>
+                    <th><?php esc_html_e( 'Leave', 'wp-erp-app-helper' ); ?></th>
+                    <th class="st-text-right"><?php esc_html_e( 'Action', 'wp-erp-app-helper' ); ?></th>
                 </tr>
             </thead>
             <tbody></tbody>
         </table>
         <div id="st-history-empty" class="st-hidden st-empty st-history-empty">
             <span class="dashicons dashicons-calendar-alt st-history-empty-icon"></span>
-            <div class="st-history-empty-text"><?php esc_html_e('No standup records found for the selected month.', 'wp-erp-app-helper'); ?></div>
+            <div class="st-history-empty-text"><?php esc_html_e( 'No standup records found for the selected month.', 'wp-erp-app-helper' ); ?></div>
         </div>
     </div>
 
@@ -46,22 +46,22 @@
                 <button class="st-btn st-btn-secondary" id="btn-back-list" title="Back">
                     <span class="dashicons dashicons-arrow-left-alt"></span>
                 </button>
-                <h2><?php esc_html_e('Record Standup', 'wp-erp-app-helper'); ?></h2>
+                <h2><?php esc_html_e( 'Record Standup', 'wp-erp-app-helper' ); ?></h2>
             </div>
             <div>
                 <?php
                 // Max date is today
-                $today = date('Y-m-d');
+                $today = gmdate( 'Y-m-d' );
                 ?>
                 <input type="date" id="st-date-picker" value="<?php echo esc_attr( $today ); ?>" max="<?php echo esc_attr( $today ); ?>">
             </div>
         </div>
 
         <div class="st-bulk-actions">
-            <span class="st-bulk-label"><?php esc_html_e('Bulk Actions:', 'wp-erp-app-helper'); ?></span>
-            <button class="button" onclick="stMarkAll('present')"><?php esc_html_e('Mark All Present', 'wp-erp-app-helper'); ?></button>
-            <button class="button" onclick="stMarkAll('absent')"><?php esc_html_e('Mark All Absent', 'wp-erp-app-helper'); ?></button>
-            <button class="button" onclick="stMarkAll('leave')"><?php esc_html_e('Mark All Leave', 'wp-erp-app-helper'); ?></button>
+            <span class="st-bulk-label"><?php esc_html_e( 'Bulk Actions:', 'wp-erp-app-helper' ); ?></span>
+            <button class="button" onclick="stMarkAll('present')"><?php esc_html_e( 'Mark All Present', 'wp-erp-app-helper' ); ?></button>
+            <button class="button" onclick="stMarkAll('absent')"><?php esc_html_e( 'Mark All Absent', 'wp-erp-app-helper' ); ?></button>
+            <button class="button" onclick="stMarkAll('leave')"><?php esc_html_e( 'Mark All Leave', 'wp-erp-app-helper' ); ?></button>
         </div>
 
         <div id="st-form-loading" class="st-loading"><span class="dashicons dashicons-update st-spin"></span> Fetching Employees...</div>
@@ -69,21 +69,21 @@
         <table class="st-table st-hidden" id="st-employee-table">
             <thead>
                 <tr>
-                    <th><?php esc_html_e('Employee', 'wp-erp-app-helper'); ?></th>
-                    <th><?php esc_html_e('Status', 'wp-erp-app-helper'); ?></th>
+                    <th><?php esc_html_e( 'Employee', 'wp-erp-app-helper' ); ?></th>
+                    <th><?php esc_html_e( 'Status', 'wp-erp-app-helper' ); ?></th>
                 </tr>
             </thead>
             <tbody></tbody>
         </table>
         
         <div id="st-form-empty" class="st-hidden st-empty">
-            <?php esc_html_e('No employees found with a shift on this date.', 'wp-erp-app-helper'); ?>
+            <?php esc_html_e( 'No employees found with a shift on this date.', 'wp-erp-app-helper' ); ?>
         </div>
 
         <div id="st-form-actions" class="st-hidden st-form-footer">
-            <button class="st-btn st-btn-secondary" id="btn-cancel"><?php esc_html_e('Cancel', 'wp-erp-app-helper'); ?></button>
+            <button class="st-btn st-btn-secondary" id="btn-cancel"><?php esc_html_e( 'Cancel', 'wp-erp-app-helper' ); ?></button>
             <button class="st-btn st-btn-primary" id="btn-save">
-                <?php esc_html_e('Save Standup', 'wp-erp-app-helper'); ?>
+                <?php esc_html_e( 'Save Standup', 'wp-erp-app-helper' ); ?>
                 <span id="st-save-spinner" class="dashicons dashicons-update st-spin st-hidden st-btn-icon-left st-spinner-small"></span>
             </button>
         </div>
@@ -94,25 +94,25 @@
         <div class="st-modal-backdrop"></div>
         <div class="st-modal-container">
             <div class="st-modal-header">
-                <h3><?php esc_html_e('Generate Standup Report', 'wp-erp-app-helper'); ?></h3>
+                <h3><?php esc_html_e( 'Generate Standup Report', 'wp-erp-app-helper' ); ?></h3>
                 <button class="st-btn-close">&times;</button>
             </div>
             <div class="st-modal-body">
-                <p><?php esc_html_e('Select a month to download the attendance report in CSV format.', 'wp-erp-app-helper'); ?></p>
+                <p><?php esc_html_e( 'Select a month to download the attendance report in CSV format.', 'wp-erp-app-helper' ); ?></p>
                 <div class="st-field-group">
-                    <label for="st-report-month"><?php esc_html_e('Select Month', 'wp-erp-app-helper'); ?></label>
-                    <input type="month" id="st-report-month" value="<?php echo date('Y-m'); ?>" max="<?php echo date('Y-m'); ?>">
+                    <label for="st-report-month"><?php esc_html_e( 'Select Month', 'wp-erp-app-helper' ); ?></label>
+                    <input type="month" id="st-report-month" value="<?php echo gmdate( 'Y-m' ); ?>" max="<?php echo gmdate( 'Y-m' ); ?>">
                 </div>
             </div>
             <div class="st-modal-footer">
-                <button class="st-btn st-btn-secondary btn-modal-close"><?php esc_html_e('Cancel', 'wp-erp-app-helper'); ?></button>
+                <button class="st-btn st-btn-secondary btn-modal-close"><?php esc_html_e( 'Cancel', 'wp-erp-app-helper' ); ?></button>
                 <button class="st-btn st-btn-primary" id="btn-download-pdf">
                     <span class="dashicons dashicons-printer st-btn-icon-right"></span>
-                    <?php esc_html_e('Print PDF', 'wp-erp-app-helper'); ?>
+                    <?php esc_html_e( 'Print PDF', 'wp-erp-app-helper' ); ?>
                 </button>
                 <button class="st-btn st-btn-primary" id="btn-download-csv">
                     <span class="dashicons dashicons-download st-btn-icon-right"></span>
-                    <?php esc_html_e('Download CSV', 'wp-erp-app-helper'); ?>
+                    <?php esc_html_e( 'Download CSV', 'wp-erp-app-helper' ); ?>
                 </button>
             </div>
         </div>
@@ -125,22 +125,22 @@
                 <img id="st-pdf-logo" src="" alt="Logo">
             </div>
             <div class="st-pdf-header-text">
-                <h1><?php esc_html_e('Daily Standup Report', 'wp-erp-app-helper'); ?></h1>
+                <h1><?php esc_html_e( 'Daily Standup Report', 'wp-erp-app-helper' ); ?></h1>
                 <p id="st-pdf-month-text"></p>
             </div>
         </div>
 
         <div class="st-pdf-summary">
             <div class="st-pdf-summary-item">
-                <span class="st-pdf-label"><?php esc_html_e('Total Working Days', 'wp-erp-app-helper'); ?></span>
+                <span class="st-pdf-label"><?php esc_html_e( 'Total Working Days', 'wp-erp-app-helper' ); ?></span>
                 <span class="st-pdf-value" id="st-pdf-total-days">0</span>
             </div>
             <div class="st-pdf-summary-item">
-                <span class="st-pdf-label"><?php esc_html_e('Total Employees', 'wp-erp-app-helper'); ?></span>
+                <span class="st-pdf-label"><?php esc_html_e( 'Total Employees', 'wp-erp-app-helper' ); ?></span>
                 <span class="st-pdf-value" id="st-pdf-total-employees">0</span>
             </div>
             <div class="st-pdf-summary-item">
-                <span class="st-pdf-label"><?php esc_html_e('Avg. Attendance', 'wp-erp-app-helper'); ?></span>
+                <span class="st-pdf-label"><?php esc_html_e( 'Avg. Attendance', 'wp-erp-app-helper' ); ?></span>
                 <span class="st-pdf-value" id="st-pdf-avg-attendance">0%</span>
             </div>
         </div>
@@ -148,18 +148,23 @@
         <table class="st-pdf-table">
             <thead>
                 <tr>
-                    <th><?php esc_html_e('Employee Name', 'wp-erp-app-helper'); ?></th>
-                    <th><?php esc_html_e('Present', 'wp-erp-app-helper'); ?></th>
-                    <th><?php esc_html_e('Absent', 'wp-erp-app-helper'); ?></th>
-                    <th><?php esc_html_e('Leave', 'wp-erp-app-helper'); ?></th>
-                    <th><?php esc_html_e('Attendance %', 'wp-erp-app-helper'); ?></th>
+                    <th><?php esc_html_e( 'Employee Name', 'wp-erp-app-helper' ); ?></th>
+                    <th><?php esc_html_e( 'Present', 'wp-erp-app-helper' ); ?></th>
+                    <th><?php esc_html_e( 'Absent', 'wp-erp-app-helper' ); ?></th>
+                    <th><?php esc_html_e( 'Leave', 'wp-erp-app-helper' ); ?></th>
+                    <th><?php esc_html_e( 'Attendance %', 'wp-erp-app-helper' ); ?></th>
                 </tr>
             </thead>
             <tbody id="st-pdf-tbody"></tbody>
         </table>
 
         <div class="st-pdf-footer">
-            <p><?php printf( esc_html__('Generated on %s', 'wp-erp-app-helper'), date('Y-m-d H:i:s') ); ?></p>
+            <p>
+            <?php
+				/* translators: %s: date and time the report was generated */
+				printf( esc_html__( 'Generated on %s', 'wp-erp-app-helper' ), gmdate( 'Y-m-d H:i:s' ) );
+			?>
+                </p>
         </div>
     </div>
 </div>

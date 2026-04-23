@@ -52,8 +52,22 @@
     </rule>
     <rule ref="WordPress.WP.I18n">
         <properties>
-            <!-- Value: replace the text domain used. -->
-            <property name="text_domain" type="array" value="wp-erp-app-helper"/>
+            <property name="text_domain" type="array">
+                <element value="wp-erp-app-helper"/>
+            </property>
+        </properties>
+    </rule>
+
+    <rule ref="WordPress.WP.Capabilities">
+        <properties>
+            <property name="custom_capabilities" type="array">
+                <element value="erp_list_employee"/>
+                <element value="erp_manage_hr_settings"/>
+                <element value="erp_edit_employee"/>
+                <element value="erp_manage_standup"/>
+                <element value="erp_team_lead"/>
+                <element value="erp_project_lead"/>
+            </property>
         </properties>
     </rule>
     <rule ref="WordPress.WhiteSpace.ControlStructureSpacing">

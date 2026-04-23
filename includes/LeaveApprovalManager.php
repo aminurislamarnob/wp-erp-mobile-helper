@@ -12,9 +12,8 @@ class LeaveApprovalManager {
     public function __construct() {
         require_once WP_ERP_APP_HELPER_INC_DIR . '/RequiredApprovalListTable.php';
 
-        add_filter( 'erp_leave_request_row_actions', [ $this, 'add_required_approval_action' ], 10, 2 );
         add_filter( 'erp_leave_request_employee_name_column', [ $this, 'display_required_approval_status' ], 10, 2 );
-        
+
         // HR Top Level Menu
         add_action( 'admin_menu', [ $this, 'register_erp_menu' ], 20 );
 
@@ -24,7 +23,6 @@ class LeaveApprovalManager {
         // AJAX handlers
         add_action( 'wp_ajax_erp_app_helper_get_team_leads', [ $this, 'get_team_leads' ] );
         add_action( 'wp_ajax_erp_app_helper_save_required_approval', [ $this, 'save_required_approval' ] );
-        add_action( 'wp_ajax_erp_app_helper_get_employee_approval_status', [ $this, 'get_employee_approval_status' ] );
         add_action( 'wp_ajax_erp_app_helper_process_leave_action', [ $this, 'process_leave_action' ] );
 
         // REST API Injections
@@ -32,67 +30,54 @@ class LeaveApprovalManager {
     }
 
     /**
-     * Add "Required Approval" row action
+     * Display the required approval status badge in the employee name column
      *
-     * @param array $actions
-     * @param object $item
-     * @return array
+     * @param string $content
+     * @param int    $request_id
+     * @return string
      */
-    public function add_required_approval_action( $actions, $item ) {
-        if ( $item->status == '2' && empty( $item->required_approver ) ) { // Only for pending and if not already set
-            $actions['required_approval'] = sprintf(
-                '<a href="#" class="erp-app-helper-required-approval" data-id="%d" data-name="%s">%s</a>',
-                $item->id,
-                esc_attr( $item->name ),
-                __( 'Required Approval', 'wp-erp-app-helper' )
+    public function display_required_approval_status( $content, $request_id ) {
+        global $wpdb;
+        $request = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT required_approver, approval_status FROM {$wpdb->prefix}erp_hr_leave_requests WHERE id = %d",
+                $request_id
+            )
+        );
+
+        if ( ! empty( $request->required_approver ) ) {
+            $approver = get_user_by( 'id', $request->required_approver );
+            $status   = $request->approval_status ? $request->approval_status : 'Pending';
+            $class    = 'status-' . strtolower( $status );
+
+            $content .= sprintf(
+                '<div class="erp-app-helper-approval-badge %s" title="%s">%s: %s (%s)</div>',
+                esc_attr( $class ),
+                esc_attr__( 'Approval required before final approval', 'wp-erp-app-helper' ),
+                esc_html__( 'Required Approval', 'wp-erp-app-helper' ),
+                esc_html( $approver->display_name ),
+                esc_html( $status )
             );
         }
-        return $actions;
+
+        return $content;
     }
 
     /**
      * Add "Leave Approval" to Top Level HR Menu
      */
     public function register_erp_menu() {
-        // Only show if user has Team Lead or higher capability
-        if ( current_user_can( 'erp_team_lead' ) || current_user_can( 'erp_hr_manager' ) ) {
-            erp_add_menu( 'hr', [
-                'title'      => __( 'Leave Approvals', 'wp-erp-app-helper' ),
-                'callback'   => [ $this, 'render_approval_list_page' ],
-                'slug'       => 'leave-approvals',
-                'capability' => 'erp_list_employee',
-                'position'   => 4,
-            ] );
-        }
-    }
-
-    /**
-     * Display the required approval status badge
-     *
-     * @param string $content
-     * @param int $request_id
-     * @return string
-     */
-    public function display_required_approval_status( $content, $request_id ) {
-        global $wpdb;
-        $request = $wpdb->get_row( "SELECT required_approver, approval_status FROM {$wpdb->prefix}erp_hr_leave_requests WHERE id = $request_id" );
-
-        if ( ! empty( $request->required_approver ) ) {
-            $approver = get_user_by( 'id', $request->required_approver );
-            $status = $request->approval_status ? $request->approval_status : 'Pending';
-            $class = 'status-' . strtolower( $status );
-
-            $content .= sprintf(
-                '<div class="erp-app-helper-approval-badge %s" title="%s">%s: %s (%s)</div>',
-                $class,
-                __( 'Approval required before final approval', 'wp-erp-app-helper' ),
-                __( 'Required Approval', 'wp-erp-app-helper' ),
-                $approver->display_name,
-                $status
+        if ( current_user_can( 'erp_team_lead' ) || current_user_can( 'erp_project_lead' ) ) {
+            erp_add_menu(
+                'hr', [
+					'title'      => __( 'Leave Approvals', 'wp-erp-app-helper' ),
+					'callback'   => [ $this, 'render_approval_list_page' ],
+					'slug'       => 'leave-approvals',
+					'capability' => 'erp_list_employee',
+					'position'   => 4,
+				]
             );
         }
-
-        return $content;
     }
 
     /**
@@ -116,43 +101,47 @@ class LeaveApprovalManager {
         foreach ( $items as &$item ) {
             // Support both array and object data structures
             $is_item_array = is_array( $item );
-            $id = $is_item_array ? (isset( $item['id'] ) ? $item['id'] : 0) : (isset( $item->id ) ? $item->id : 0);
-            
+            $id = $is_item_array ? ( isset( $item['id'] ) ? $item['id'] : 0 ) : ( isset( $item->id ) ? $item->id : 0 );
+
             if ( ! $id ) {
                 continue;
             }
 
             global $wpdb;
-            $approval = $wpdb->get_row( $wpdb->prepare(
-                "SELECT r.required_approver, r.approval_status, u.display_name as approver_name
+            $approval = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT r.required_approver, r.approval_status, u.display_name as approver_name
                 FROM {$wpdb->prefix}erp_hr_leave_requests r
                 LEFT JOIN wp_users u ON r.required_approver = u.ID
                 WHERE r.id = %d",
-                $id
-            ) );
+                    $id
+                )
+            );
 
             if ( $approval && $approval->required_approver ) {
                 $status = $approval->approval_status ? $approval->approval_status : 'Pending';
-                
+
                 $approval_data = [
                     'approver_id'   => (int) $approval->required_approver,
                     'approver_name' => $approval->approver_name,
                     'status'        => $status,
                 ];
-                
+
                 if ( 'Pending' === $status ) {
+                    /* translators: %s: approver name */
                     $msg = sprintf(
                         __( 'Waiting for additional approval from %s', 'wp-erp-app-helper' ),
                         $approval->approver_name
                     );
                 } else {
+                    /* translators: 1: approval status, 2: approver name */
                     $msg = sprintf(
-                        __( '%s by %s', 'wp-erp-app-helper' ),
+                        __( '%1$s by %2$s', 'wp-erp-app-helper' ),
                         $status,
                         $approval->approver_name
                     );
                 }
-                
+
                 if ( $is_item_array ) {
                     $item['required_approval'] = $approval_data;
                     $item['message'] = $msg;
@@ -162,57 +151,23 @@ class LeaveApprovalManager {
                     $item->message = $msg;
                     $item->required_approval_message = $msg;
                 }
-            } else {
-                if ( $is_item_array ) {
-                    if ( ! isset( $item['message'] ) ) {
-                        $item['message'] = '';
-                    }
+            } elseif ( $is_item_array ) {
+				if ( ! isset( $item['message'] ) ) {
+					$item['message'] = '';
+				}
                     $item['required_approval'] = null;
                     $item['required_approval_message'] = '';
-                } else {
-                    if ( ! isset( $item->message ) ) {
-                        $item->message = '';
-                    }
-                    $item->required_approval = null;
-                    $item->required_approval_message = '';
-                }
+			} else {
+				if ( ! isset( $item->message ) ) {
+					$item->message = '';
+				}
+				$item->required_approval = null;
+				$item->required_approval_message = '';
             }
         }
 
         $response->set_data( $is_collection ? $items : $items[0] );
         return $response;
-    }
-
-    /**
-     * AJAX: Get approval status for current employee's pending requests
-     */
-    public function get_employee_approval_status() {
-        check_ajax_referer( 'erp-app-helper-nonce', 'nonce' );
-
-        global $wpdb;
-        $user_id = get_current_user_id();
-
-        $results = $wpdb->get_results( $wpdb->prepare(
-            "SELECT r.id, r.required_approver, r.approval_status, u.display_name as approver_name, r.start_date, r.end_date, l.name as leave_name
-            FROM {$wpdb->prefix}erp_hr_leave_requests r
-            LEFT JOIN wp_users u ON r.required_approver = u.ID
-            LEFT JOIN {$wpdb->prefix}erp_hr_leaves l ON r.leave_id = l.id
-            WHERE r.user_id = %d AND r.required_approver IS NOT NULL",
-            $user_id
-        ) );
-
-        $data = [];
-        foreach ( $results as $row ) {
-            $data[] = [
-                'id'            => $row->id,
-                'approver_name' => $row->approver_name,
-                'status'        => $row->approval_status ? $row->approval_status : 'Pending',
-                'date_range'    => erp_format_date( $row->start_date, 'M d' ) . ( $row->start_date === $row->end_date ? '' : ' — ' . erp_format_date( $row->end_date, 'M d' ) ),
-                'leave_name'    => $row->leave_name,
-            ];
-        }
-
-        wp_send_json_success( $data );
     }
 
     /**
@@ -225,14 +180,15 @@ class LeaveApprovalManager {
         $list_table->prepare_items();
         ?>
         <div class="wrap">
-            <h2><?php _e( 'Leave Approvals Required', 'wp-erp-app-helper' ); ?></h2>
-            
+            <h2><?php esc_html_e( 'Leave Approvals Required', 'wp-erp-app-helper' ); ?></h2>
+
             <?php $list_table->views(); ?>
 
             <form method="get" id="erp-app-helper-approval-filter">
-                <input type="hidden" name="page" value="<?php echo esc_attr( $_REQUEST['page'] ); ?>" />
-                <?php if ( isset( $_REQUEST['section'] ) ) : ?>
-                    <input type="hidden" name="section" value="<?php echo esc_attr( $_REQUEST['section'] ); ?>" />
+                <?php // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page/section params for hidden form fields. ?>
+                <input type="hidden" name="page" value="<?php echo esc_attr( isset( $_REQUEST['page'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['page'] ) ) : '' ); ?>" />
+                <?php if ( isset( $_REQUEST['section'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+                    <input type="hidden" name="section" value="<?php echo esc_attr( sanitize_text_field( wp_unslash( $_REQUEST['section'] ) ) ); ?>" />
                 <?php endif; ?>
                 
                 <?php $list_table->display(); ?>
@@ -249,12 +205,12 @@ class LeaveApprovalManager {
             return;
         }
 
-        if ( ! wp_verify_nonce( $_GET['_wpnonce'], 'erp-app-helper-action' ) ) {
+        if ( ! wp_verify_nonce( sanitize_key( wp_unslash( $_GET['_wpnonce'] ?? '' ) ), 'erp-app-helper-action' ) ) {
             return;
         }
 
-        $id = absint( $_GET['id'] );
-        $action = sanitize_text_field( $_GET['action'] );
+        $id     = absint( $_GET['id'] );
+        $action = sanitize_text_field( wp_unslash( $_GET['action'] ) );
         global $wpdb;
 
         if ( 'approve' === $action ) {
@@ -265,17 +221,20 @@ class LeaveApprovalManager {
                 [ '%s' ],
                 [ '%d' ]
             );
-            
-            // Log the approval
-            $wpdb->insert( "{$wpdb->prefix}erp_hr_leave_approval_status", [
-                'leave_request_id'   => $id,
-                'approval_status_id' => 2, // Keep it pending for final HR approval
-                'message'            => sprintf( __( 'Approved by required approver (%s)', 'wp-erp-app-helper' ), wp_get_current_user()->display_name ),
-                'approved_by'        => get_current_user_id(),
-                'created_at'         => time(),
-            ] );
 
-            echo '<div class="updated"><p>' . __( 'Leave request approved successfully.', 'wp-erp-app-helper' ) . '</p></div>';
+            // Log the approval
+            $wpdb->insert(
+                "{$wpdb->prefix}erp_hr_leave_approval_status", [
+					'leave_request_id'   => $id,
+					'approval_status_id' => 2, // Keep it pending for final HR approval
+                    /* translators: %s: approver display name */
+					'message'            => sprintf( __( 'Approved by required approver (%s)', 'wp-erp-app-helper' ), wp_get_current_user()->display_name ),
+					'approved_by'        => get_current_user_id(),
+					'created_at'         => time(),
+				]
+            );
+
+            echo '<div class="updated"><p>' . esc_html__( 'Leave request approved successfully.', 'wp-erp-app-helper' ) . '</p></div>';
         } elseif ( 'reject' === $action ) {
             $wpdb->update(
                 "{$wpdb->prefix}erp_hr_leave_requests",
@@ -286,15 +245,18 @@ class LeaveApprovalManager {
             );
 
             // Log the rejection
-            $wpdb->insert( "{$wpdb->prefix}erp_hr_leave_approval_status", [
-                'leave_request_id'   => $id,
-                'approval_status_id' => 2, // Still pending but flagged as rejected by requester
-                'message'            => sprintf( __( 'Rejected by required approver (%s)', 'wp-erp-app-helper' ), wp_get_current_user()->display_name ),
-                'approved_by'        => get_current_user_id(),
-                'created_at'         => time(),
-            ] );
+            $wpdb->insert(
+                "{$wpdb->prefix}erp_hr_leave_approval_status", [
+					'leave_request_id'   => $id,
+					'approval_status_id' => 2, // Still pending but flagged as rejected by requester
+                    /* translators: %s: approver display name */
+					'message'            => sprintf( __( 'Rejected by required approver (%s)', 'wp-erp-app-helper' ), wp_get_current_user()->display_name ),
+					'approved_by'        => get_current_user_id(),
+					'created_at'         => time(),
+				]
+            );
 
-            echo '<div class="error"><p>' . __( 'Leave request rejected.', 'wp-erp-app-helper' ) . '</p></div>';
+            echo '<div class="error"><p>' . esc_html__( 'Leave request rejected.', 'wp-erp-app-helper' ) . '</p></div>';
         }
     }
 
@@ -302,38 +264,40 @@ class LeaveApprovalManager {
      * Enqueue scripts and styles
      */
     public function enqueue_scripts( $hook ) {
-        if ( ! isset( $_GET['page'] ) || 'erp-hr' !== $_GET['page'] ) {
+        if ( ! isset( $_GET['page'] ) || 'erp-hr' !== $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             return;
         }
 
         wp_enqueue_style( 'erp-app-helper-admin', WP_ERP_APP_HELPER_PLUGIN_ASSET . '/admin/css/admin.css', [], WP_ERP_APP_HELPER_PLUGIN_VERSION );
         wp_enqueue_script( 'erp-app-helper-leave-approval', WP_ERP_APP_HELPER_PLUGIN_ASSET . '/admin/js/leave-approval.js', [ 'jquery', 'erp-script' ], WP_ERP_APP_HELPER_PLUGIN_VERSION, true );
 
-        wp_localize_script( 'erp-app-helper-leave-approval', 'erpAppHelper', [
-            'ajaxurl' => admin_url( 'admin-ajax.php' ),
-            'nonce'   => wp_create_nonce( 'erp-app-helper-nonce' ),
-            'i18n'    => [
-                'selectClead' => __( 'Select Team Lead or Higher', 'wp-erp-app-helper' ),
-                'save'        => __( 'Save', 'wp-erp-app-helper' ),
-                'cancel'      => __( 'Cancel', 'wp-erp-app-helper' ),
-                'loading'     => __( 'Loading...', 'wp-erp-app-helper' ),
-                'success'     => __( 'Required approval saved successfully.', 'wp-erp-app-helper' ),
-                'approve'     => __( 'Approve', 'wp-erp-app-helper' ),
-                'reject'      => __( 'Reject', 'wp-erp-app-helper' ),
-                'approveTitle' => __( 'Approve Leave Request', 'wp-erp-app-helper' ),
-                'rejectTitle'  => __( 'Reject Leave Request', 'wp-erp-app-helper' ),
-                'approveLabel' => __( 'Approval Message (Optional)', 'wp-erp-app-helper' ),
-                'rejectLabel'  => __( 'Rejection Reason', 'wp-erp-app-helper' ),
-                'actionSuccess' => __( 'Action processed successfully.', 'wp-erp-app-helper' ),
-            ]
-        ] );
+        wp_localize_script(
+            'erp-app-helper-leave-approval', 'erpAppHelper', [
+				'ajaxurl' => admin_url( 'admin-ajax.php' ),
+				'nonce'   => wp_create_nonce( 'erp-app-helper-nonce' ),
+				'i18n'    => [
+					'selectClead' => __( 'Select Team Lead or Project Lead', 'wp-erp-app-helper' ),
+					'save'        => __( 'Save', 'wp-erp-app-helper' ),
+					'cancel'      => __( 'Cancel', 'wp-erp-app-helper' ),
+					'loading'     => __( 'Loading...', 'wp-erp-app-helper' ),
+					'success'     => __( 'Required approval saved successfully.', 'wp-erp-app-helper' ),
+					'approve'     => __( 'Approve', 'wp-erp-app-helper' ),
+					'reject'      => __( 'Reject', 'wp-erp-app-helper' ),
+					'approveTitle' => __( 'Approve Leave Request', 'wp-erp-app-helper' ),
+					'rejectTitle'  => __( 'Reject Leave Request', 'wp-erp-app-helper' ),
+					'approveLabel' => __( 'Approval Message (Optional)', 'wp-erp-app-helper' ),
+					'rejectLabel'  => __( 'Rejection Reason', 'wp-erp-app-helper' ),
+					'actionSuccess' => __( 'Action processed successfully.', 'wp-erp-app-helper' ),
+				],
+			]
+        );
     }
 
     /**
      * Render the modal template
      */
     public function render_modal_template() {
-        if ( ! isset( $_GET['page'] ) || 'erp-hr' !== $_GET['page'] ) {
+        if ( ! isset( $_GET['page'] ) || 'erp-hr' !== $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             return;
         }
 
@@ -347,10 +311,12 @@ class LeaveApprovalManager {
     public function get_team_leads() {
         check_ajax_referer( 'erp-app-helper-nonce', 'nonce' );
 
-        $users = get_users( [
-            'role__in' => [ 'erp_team_lead', 'erp_hr_manager', 'administrator' ],
-            'fields'   => [ 'ID', 'display_name' ],
-        ] );
+        $users = get_users(
+            [
+				'role__in' => [ 'erp_team_lead', 'erp_project_lead' ],
+				'fields'   => [ 'ID', 'display_name' ],
+			]
+        );
 
         $results = [];
         foreach ( $users as $user ) {
@@ -391,15 +357,18 @@ class LeaveApprovalManager {
 
         // Also add a status message to the leave request history
         $approver = get_user_by( 'id', $approver_id );
+        /* translators: %s: approver display name */
         $message = sprintf( __( 'Waiting for additional approval from %s', 'wp-erp-app-helper' ), $approver->display_name );
 
-        $wpdb->insert( "{$wpdb->prefix}erp_hr_leave_approval_status", [
-            'leave_request_id'   => $request_id,
-            'approval_status_id' => 2, // Keep it pending
-            'message'            => $message,
-            'approved_by'        => get_current_user_id(),
-            'created_at'         => time(),
-        ] );
+        $wpdb->insert(
+            "{$wpdb->prefix}erp_hr_leave_approval_status", [
+				'leave_request_id'   => $request_id,
+				'approval_status_id' => 2, // Keep it pending
+				'message'            => $message,
+				'approved_by'        => get_current_user_id(),
+				'created_at'         => time(),
+			]
+        );
 
         wp_send_json_success();
     }
@@ -411,9 +380,9 @@ class LeaveApprovalManager {
 
         $request_id = isset( $_POST['request_id'] ) ? absint( $_POST['request_id'] ) : 0;
         $action      = isset( $_POST['action_type'] ) ? sanitize_key( $_POST['action_type'] ) : ''; // 'approve' or 'reject'
-        $message     = isset( $_POST['message'] ) ? sanitize_textarea_field( $_POST['message'] ) : '';
+        $message     = isset( $_POST['message'] ) ? sanitize_textarea_field( wp_unslash( $_POST['message'] ) ) : '';
 
-        if ( ! $request_id || ! in_array( $action, [ 'approve', 'reject' ] ) ) {
+        if ( ! $request_id || ! in_array( $action, [ 'approve', 'reject' ], true ) ) {
             wp_send_json_error( __( 'Invalid request.', 'wp-erp-app-helper' ) );
         }
 
@@ -440,18 +409,21 @@ class LeaveApprovalManager {
         }
 
         // Add history log using raw query to avoid Model issues if not loaded
-        $wpdb->insert( "{$wpdb->prefix}erp_hr_leave_approval_status", [
-            'leave_request_id'   => $request_id,
-            'approval_status_id' => ( 'approve' === $action ) ? 1 : 3, // 1: Approved, 3: Rejected
-            'message'            => sprintf( 
-                __( '%s by required approver (%s): %s', 'wp-erp-app-helper' ), 
-                ucfirst( $status ), 
-                wp_get_current_user()->display_name,
-                $message
-            ),
-            'approved_by'        => get_current_user_id(),
-            'created_at'         => time(),
-        ] );
+        $wpdb->insert(
+            "{$wpdb->prefix}erp_hr_leave_approval_status", [
+				'leave_request_id'   => $request_id,
+				'approval_status_id' => ( 'approve' === $action ) ? 1 : 3, // 1: Approved, 3: Rejected
+                /* translators: 1: status (Approved/Rejected), 2: approver name, 3: reason message */
+				'message'            => sprintf(
+					__( '%1$s by required approver (%2$s): %3$s', 'wp-erp-app-helper' ),
+					ucfirst( $status ),
+					wp_get_current_user()->display_name,
+					$message
+				),
+				'approved_by'        => get_current_user_id(),
+				'created_at'         => time(),
+			]
+        );
 
         wp_send_json_success( __( 'Action processed successfully.', 'wp-erp-app-helper' ) );
     }

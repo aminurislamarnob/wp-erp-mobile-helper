@@ -37,13 +37,15 @@ class Standup {
      */
     public function admin_menu() {
         if ( function_exists( 'erp_add_menu' ) ) {
-            erp_add_menu( 'hr', [
-                'title'      => __( 'Standup Tracker', 'wp-erp-app-helper' ),
-                'slug'       => 'standup-tracker',
-                'capability' => 'erp_manage_standup',
-                'callback'   => [ $this, 'render_page' ],
-                'position'   => 90,
-            ] );
+            erp_add_menu(
+                'hr', [
+					'title'      => __( 'Standup Tracker', 'wp-erp-app-helper' ),
+					'slug'       => 'standup-tracker',
+					'capability' => 'erp_manage_standup',
+					'callback'   => [ $this, 'render_page' ],
+					'position'   => 90,
+				]
+            );
         }
     }
 

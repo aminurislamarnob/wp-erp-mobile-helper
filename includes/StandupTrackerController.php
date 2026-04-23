@@ -14,80 +14,90 @@ class StandupTrackerController {
 
     public function register_routes() {
         // List historical records grouped by date
-        register_rest_route( $this->namespace, '/' . $this->rest_base . '/history', [
-            [
-                'methods'             => WP_REST_Server::READABLE,
-                'callback'            => [ $this, 'get_history' ],
-                'permission_callback' => [ $this, 'check_permission' ],
-            ]
-        ] );
+        register_rest_route(
+            $this->namespace, '/' . $this->rest_base . '/history', [
+				[
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => [ $this, 'get_history' ],
+					'permission_callback' => [ $this, 'check_permission' ],
+				],
+			]
+        );
 
         // Get employees with their shift/status for a specific date
-        register_rest_route( $this->namespace, '/' . $this->rest_base . '/employees', [
-            [
-                'methods'             => WP_REST_Server::READABLE,
-                'callback'            => [ $this, 'get_employees_for_date' ],
-                'permission_callback' => [ $this, 'check_permission' ],
-                'args'                => [
-                    'date' => [
-                        'required' => true,
-                        'type'     => 'string',
-                        'format'   => 'date'
-                    ]
-                ]
-            ]
-        ] );
+        register_rest_route(
+            $this->namespace, '/' . $this->rest_base . '/employees', [
+				[
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => [ $this, 'get_employees_for_date' ],
+					'permission_callback' => [ $this, 'check_permission' ],
+					'args'                => [
+						'date' => [
+							'required' => true,
+							'type'     => 'string',
+							'format'   => 'date',
+						],
+					],
+				],
+			]
+        );
 
         // Save records
-        register_rest_route( $this->namespace, '/' . $this->rest_base . '/save', [
-            [
-                'methods'             => WP_REST_Server::CREATABLE,
-                'callback'            => [ $this, 'save_standup' ],
-                'permission_callback' => [ $this, 'check_permission' ],
-                'args'                => [
-                    'date' => [
-                        'required' => true,
-                        'type'     => 'string',
-                        'format'   => 'date'
-                    ],
-                    'records' => [ // Array of { employee_id: 1, status: 'present' }
-                        'required' => true,
-                        'type'     => 'array'
-                    ]
-                ]
-            ]
-        ] );
+        register_rest_route(
+            $this->namespace, '/' . $this->rest_base . '/save', [
+				[
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => [ $this, 'save_standup' ],
+					'permission_callback' => [ $this, 'check_permission' ],
+					'args'                => [
+						'date' => [
+							'required' => true,
+							'type'     => 'string',
+							'format'   => 'date',
+						],
+						'records' => [ // Array of { employee_id: 1, status: 'present' }
+							'required' => true,
+							'type'     => 'array',
+						],
+					],
+				],
+			]
+        );
 
         // Delete records for a particular date
-        register_rest_route( $this->namespace, '/' . $this->rest_base . '/delete', [
-            [
-                'methods'             => WP_REST_Server::DELETABLE,
-                'callback'            => [ $this, 'delete_standup' ],
-                'permission_callback' => [ $this, 'check_permission' ],
-                'args'                => [
-                    'date' => [
-                        'required' => true,
-                        'type'     => 'string',
-                        'format'   => 'date'
-                    ]
-                ]
-            ]
-        ] );
-        
+        register_rest_route(
+            $this->namespace, '/' . $this->rest_base . '/delete', [
+				[
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => [ $this, 'delete_standup' ],
+					'permission_callback' => [ $this, 'check_permission' ],
+					'args'                => [
+						'date' => [
+							'required' => true,
+							'type'     => 'string',
+							'format'   => 'date',
+						],
+					],
+				],
+			]
+        );
+
         // Get aggregate report for a month
-        register_rest_route( $this->namespace, '/' . $this->rest_base . '/report', [
-            [
-                'methods'             => WP_REST_Server::READABLE,
-                'callback'            => [ $this, 'get_report' ],
-                'permission_callback' => [ $this, 'check_permission' ],
-                'args'                => [
-                    'month' => [
-                        'required' => true,
-                        'type'     => 'string',
-                    ]
-                ]
-            ]
-        ] );
+        register_rest_route(
+            $this->namespace, '/' . $this->rest_base . '/report', [
+				[
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => [ $this, 'get_report' ],
+					'permission_callback' => [ $this, 'check_permission' ],
+					'args'                => [
+						'month' => [
+							'required' => true,
+							'type'     => 'string',
+						],
+					],
+				],
+			]
+        );
     }
 
     public function check_permission() {
@@ -107,15 +117,17 @@ class StandupTrackerController {
     public function get_history( WP_REST_Request $request ) {
         global $wpdb;
         $table = "{$wpdb->prefix}erp_standup_tracker";
-        
+
         $month = $request->get_param( 'month' );
         if ( ! $month ) {
-            $month = date( 'Y-m' );
+            $month = gmdate( 'Y-m' );
         }
 
         // Group by date to get stats
-        $sql = $wpdb->prepare( "
-            SELECT standup_date, 
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is a $wpdb->prefix-constructed identifier.
+        $sql = $wpdb->prepare(
+            "
+            SELECT standup_date,
                    SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) as present_count,
                    SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absent_count,
                    SUM(CASE WHEN status = 'leave' THEN 1 ELSE 0 END) as leave_count
@@ -123,9 +135,11 @@ class StandupTrackerController {
             WHERE standup_date LIKE %s
             GROUP BY standup_date
             ORDER BY standup_date DESC
-        ", $month . '%' );
+        ", $month . '%'
+        );
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
-        $results = $wpdb->get_results( $sql, ARRAY_A );
+        $results = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
         return rest_ensure_response( $results );
     }
@@ -142,7 +156,8 @@ class StandupTrackerController {
 
         // Fetch employees who have a shift on this date
         // Similar to erp_att_get_single_day_attendance
-        $sql = $wpdb->prepare( "
+        $sql = $wpdb->prepare(
+            "
             SELECT 
                 ds.user_id as employee_id,
                 umeta.meta_value as first_name,
@@ -154,10 +169,11 @@ class StandupTrackerController {
             LEFT JOIN {$wpdb->prefix}usermeta AS umeta2 ON (umeta2.user_id = ds.user_id AND umeta2.meta_key = 'last_name')
             LEFT JOIN {$wpdb->prefix}erp_standup_tracker AS st ON (st.employee_id = ds.user_id AND st.standup_date = %s)
             WHERE shift.status = 1 AND ds.date = %s
-        ", $date, $date );
+        ", $date, $date
+        );
 
         $results = $wpdb->get_results( $sql, ARRAY_A );
-        
+
         // Format names
         foreach ( $results as &$row ) {
             $row['name'] = trim( $row['first_name'] . ' ' . $row['last_name'] );
@@ -185,20 +201,21 @@ class StandupTrackerController {
             $emp_id = absint( $record['employee_id'] );
             $status = sanitize_text_field( $record['status'] );
 
-            if ( ! in_array( $status, [ 'present', 'absent', 'leave' ] ) ) {
+            if ( ! in_array( $status, [ 'present', 'absent', 'leave' ], true ) ) {
                 continue;
             }
 
             // Check if exist
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is a $wpdb->prefix-constructed identifier.
             $exist = $wpdb->get_row( $wpdb->prepare( "SELECT id FROM $table WHERE employee_id = %d AND standup_date = %s", $emp_id, $date ) );
 
             if ( $exist ) {
-                $wpdb->update( 
-                    $table, 
-                    [ 
+                $wpdb->update(
+                    $table,
+                    [
                         'status'     => $status,
-                        'updated_at' => $datetime 
-                    ], 
+                        'updated_at' => $datetime,
+                    ],
                     [ 'id' => $exist->id ],
                     [ '%s', '%s' ],
                     [ '%d' ]
@@ -212,7 +229,7 @@ class StandupTrackerController {
                         'status'       => $status,
                         'created_by'   => $user_id,
                         'created_at'   => $datetime,
-                        'updated_at'   => $datetime
+                        'updated_at'   => $datetime,
                     ],
                     [ '%d', '%s', '%s', '%d', '%s', '%s' ]
                 );
@@ -221,7 +238,12 @@ class StandupTrackerController {
 
         $wpdb->query( 'COMMIT' );
 
-        return rest_ensure_response( [ 'success' => true, 'message' => 'Standup records saved successfully.' ] );
+        return rest_ensure_response(
+            [
+				'success' => true,
+				'message' => 'Standup records saved successfully.',
+			]
+        );
     }
 
     public function delete_standup( WP_REST_Request $request ) {
@@ -240,7 +262,12 @@ class StandupTrackerController {
             return new WP_Error( 'delete_failed', 'Failed to delete standup records.', [ 'status' => 500 ] );
         }
 
-        return rest_ensure_response( [ 'success' => true, 'message' => 'Standup records deleted successfully.' ] );
+        return rest_ensure_response(
+            [
+				'success' => true,
+				'message' => 'Standup records deleted successfully.',
+			]
+        );
     }
 
     public function get_report( WP_REST_Request $request ) {
@@ -250,14 +277,19 @@ class StandupTrackerController {
         $usermeta = "{$wpdb->prefix}usermeta";
 
         // Total Working Days for the month (unique days with entries)
-        $total_working_days = $wpdb->get_var( $wpdb->prepare( "
+        $total_working_days = $wpdb->get_var(
+            $wpdb->prepare(
+                "
             SELECT COUNT(DISTINCT standup_date) 
             FROM $table 
             WHERE standup_date LIKE %s
-        ", $month . '%' ) );
+        ", $month . '%'
+            )
+        );
 
         // Aggregate counts per employee
-        $sql = $wpdb->prepare( "
+        $sql = $wpdb->prepare(
+            "
             SELECT 
                 st.employee_id,
                 TRIM(CONCAT(um1.meta_value, ' ', um2.meta_value)) as name,
@@ -270,13 +302,16 @@ class StandupTrackerController {
             WHERE st.standup_date LIKE %s
             GROUP BY st.employee_id
             ORDER BY name ASC
-        ", $month . '%' );
+        ", $month . '%'
+        );
 
         $results = $wpdb->get_results( $sql, ARRAY_A );
 
-        return rest_ensure_response( [
-            'total_working_days' => (int) $total_working_days,
-            'stats'              => $results
-        ] );
+        return rest_ensure_response(
+            [
+				'total_working_days' => (int) $total_working_days,
+				'stats'              => $results,
+			]
+        );
     }
 }

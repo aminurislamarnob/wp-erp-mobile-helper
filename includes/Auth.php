@@ -249,11 +249,11 @@ class Auth {
 	 */
 	private function get_authorization_header() {
 		if ( isset( $_SERVER['HTTP_AUTHORIZATION'] ) ) {
-			return $_SERVER['HTTP_AUTHORIZATION']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			return wp_unslash( $_SERVER['HTTP_AUTHORIZATION'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		}
 
 		if ( isset( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ) ) {
-			return $_SERVER['REDIRECT_HTTP_AUTHORIZATION']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			return wp_unslash( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		}
 
 		if ( function_exists( 'getallheaders' ) ) {

@@ -109,6 +109,7 @@ final class WpErpAppHelper {
 		$this->container['auth']->register_routes();
         $this->container['standup_api']->register_routes();
         $this->container['hrm_api']->register_routes();
+        $this->container['payment_request_api']->register_routes();
 	}
 
     /**
@@ -139,8 +140,8 @@ final class WpErpAppHelper {
         defined( 'WP_ERP_APP_HELPER_INC_DIR' ) || define( 'WP_ERP_APP_HELPER_INC_DIR', WP_ERP_APP_HELPER_DIR . '/includes' );
         defined( 'WP_ERP_APP_HELPER_TEMPLATE_DIR' ) || define( 'WP_ERP_APP_HELPER_TEMPLATE_DIR', WP_ERP_APP_HELPER_DIR . '/templates' );
         defined( 'WP_ERP_APP_HELPER_PLUGIN_ASSET' ) || define( 'WP_ERP_APP_HELPER_PLUGIN_ASSET', plugins_url( 'assets', WP_ERP_APP_HELPER_FILE ) );
-        defined( 'WP_ERP_APP_HELPER_PLUGIN_ADMIN_ASSET' ) || define( 'WP_ERP_APP_HELPER_PLUGIN_ADMIN_ASSET' , WP_ERP_APP_HELPER_PLUGIN_ASSET . '/admin' );
-        defined( 'WP_ERP_APP_HELPER_PLUGIN_PUBLIC_ASSET' ) || define( 'WP_ERP_APP_HELPER_PLUGIN_PUBLIC_ASSET' , WP_ERP_APP_HELPER_PLUGIN_ASSET . '/public' );
+        defined( 'WP_ERP_APP_HELPER_PLUGIN_ADMIN_ASSET' ) || define( 'WP_ERP_APP_HELPER_PLUGIN_ADMIN_ASSET', WP_ERP_APP_HELPER_PLUGIN_ASSET . '/admin' );
+        defined( 'WP_ERP_APP_HELPER_PLUGIN_PUBLIC_ASSET' ) || define( 'WP_ERP_APP_HELPER_PLUGIN_PUBLIC_ASSET', WP_ERP_APP_HELPER_PLUGIN_ASSET . '/public' );
 
         // give a way to turn off loading styles and scripts from parent theme
         defined( 'WP_ERP_APP_HELPER_LOAD_STYLE' ) || define( 'WP_ERP_APP_HELPER_LOAD_STYLE', true );
@@ -192,6 +193,8 @@ final class WpErpAppHelper {
         $this->container['hrm_api'] = new HrmController();
         $this->container['roles'] = new Roles();
         $this->container['leave_approval'] = new LeaveApprovalManager();
+        $this->container['payment_requests'] = new PaymentRequestManager();
+        $this->container['payment_request_api'] = new PaymentRequestController();
     }
 
     /**
@@ -259,7 +262,7 @@ final class WpErpAppHelper {
 			'variation_data' => $variation_data,
 			'variation' => $variation
 		] );
-     * 
+     *
      * @param mixed  $template_name
      * @param array  $args          (default: array())
      * @param string $template_path (default: '')
@@ -267,7 +270,7 @@ final class WpErpAppHelper {
      *
      * @return void
      */
-    function get_template( $template_name, $args = [] ) {
+    public function get_template( $template_name, $args = [] ) {
         if ( $args && is_array( $args ) ) {
             extract( $args ); // phpcs:ignore
         }

@@ -12,21 +12,25 @@ class HrmController {
     protected $rest_base = 'hrm/employees';
 
     public function register_routes() {
-        register_rest_route( $this->namespace, '/' . $this->rest_base . '/(?P<user_id>[\d]+)/pending-leaves', [
-            [
-                'methods'             => WP_REST_Server::READABLE,
-                'callback'            => [ $this, 'get_pending_leaves' ],
-                'permission_callback' => [ $this, 'check_permission' ],
-            ]
-        ] );
+        register_rest_route(
+            $this->namespace, '/' . $this->rest_base . '/(?P<user_id>[\d]+)/pending-leaves', [
+				[
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => [ $this, 'get_pending_leaves' ],
+					'permission_callback' => [ $this, 'check_permission' ],
+				],
+			]
+        );
 
-        register_rest_route( $this->namespace, '/' . $this->rest_base . '/(?P<user_id>[\d]+)/rejected-leaves', [
-            [
-                'methods'             => WP_REST_Server::READABLE,
-                'callback'            => [ $this, 'get_rejected_leaves' ],
-                'permission_callback' => [ $this, 'check_permission' ],
-            ]
-        ] );
+        register_rest_route(
+            $this->namespace, '/' . $this->rest_base . '/(?P<user_id>[\d]+)/rejected-leaves', [
+				[
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => [ $this, 'get_rejected_leaves' ],
+					'permission_callback' => [ $this, 'check_permission' ],
+				],
+			]
+        );
     }
 
     public function check_permission( $request ) {
@@ -43,7 +47,7 @@ class HrmController {
 
     protected function get_leaves_by_status( WP_REST_Request $request, $status ) {
         $user_id = (int) $request['user_id'];
-        
+
         if ( ! function_exists( 'erp_hr_get_financial_year_from_date' ) ) {
             return new WP_Error( 'erp_not_found', 'WP endpoint ERP is not active.', [ 'status' => 500 ] );
         }
