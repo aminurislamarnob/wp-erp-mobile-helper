@@ -13,8 +13,6 @@ class Standup {
      * Map the custom capability strictly for the required roles.
      */
     public function map_standup_cap( $caps, $cap, $user_id, $args ) {
-        unset( $args );
-
         if ( 'erp_manage_standup' === $cap ) {
             $user = get_userdata( $user_id );
             if ( ! $user ) {
