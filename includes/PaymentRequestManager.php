@@ -570,8 +570,8 @@ class PaymentRequestManager {
 
         $body .= "\n\n" . get_bloginfo( 'name' );
 
-        if ( function_exists( 'erp_send_email' ) ) {
-            \erp_send_email( $to, $subject, $body );
+        if ( function_exists( 'erp_mail' ) ) {
+            erp_mail( $to, $subject, $body );
         } else {
             wp_mail( $to, $subject, $body );
         }
