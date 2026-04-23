@@ -128,14 +128,14 @@ class LeaveApprovalManager {
                 ];
 
                 if ( 'Pending' === $status ) {
-                    /* translators: %s: approver name */
                     $msg = sprintf(
+                        /* translators: %s: approver name */
                         __( 'Waiting for additional approval from %s', 'wp-erp-app-helper' ),
                         $approval->approver_name
                     );
                 } else {
-                    /* translators: 1: approval status, 2: approver name */
                     $msg = sprintf(
+                        /* translators: 1: approval status, 2: approver name */
                         __( '%1$s by %2$s', 'wp-erp-app-helper' ),
                         $status,
                         $approval->approver_name
@@ -188,7 +188,7 @@ class LeaveApprovalManager {
                 <?php // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page/section params for hidden form fields. ?>
                 <input type="hidden" name="page" value="<?php echo esc_attr( isset( $_REQUEST['page'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['page'] ) ) : '' ); ?>" />
                 <?php if ( isset( $_REQUEST['section'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
-                    <input type="hidden" name="section" value="<?php echo esc_attr( sanitize_text_field( wp_unslash( $_REQUEST['section'] ) ) ); ?>" />
+                    <input type="hidden" name="section" value="<?php echo esc_attr( sanitize_text_field( wp_unslash( $_REQUEST['section'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>" />
                 <?php endif; ?>
                 
                 <?php $list_table->display(); ?>
@@ -413,8 +413,8 @@ class LeaveApprovalManager {
             "{$wpdb->prefix}erp_hr_leave_approval_status", [
 				'leave_request_id'   => $request_id,
 				'approval_status_id' => ( 'approve' === $action ) ? 1 : 3, // 1: Approved, 3: Rejected
-                /* translators: 1: status (Approved/Rejected), 2: approver name, 3: reason message */
 				'message'            => sprintf(
+                    /* translators: 1: status (Approved/Rejected), 2: approver name, 3: reason message */
 					__( '%1$s by required approver (%2$s): %3$s', 'wp-erp-app-helper' ),
 					ucfirst( $status ),
 					wp_get_current_user()->display_name,

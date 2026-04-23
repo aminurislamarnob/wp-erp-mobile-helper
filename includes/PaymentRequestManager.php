@@ -547,8 +547,8 @@ class PaymentRequestManager {
         }
 
         $to = $employee->user_email;
-        /* translators: 1: request title, 2: status (approved/rejected) */
         $subject = sprintf(
+            /* translators: 1: request title, 2: status (approved/rejected) */
             __( 'Your payment request "%1$s" has been %2$s', 'wp-erp-app-helper' ),
             $request->title,
             $status

@@ -4,7 +4,6 @@ namespace WeLabs\WpErpAppHelper;
 
 use WP_REST_Server;
 use WP_REST_Request;
-use WP_REST_Response;
 use WP_Error;
 
 class StandupTrackerController {
@@ -116,30 +115,29 @@ class StandupTrackerController {
 
     public function get_history( WP_REST_Request $request ) {
         global $wpdb;
-        $table = "{$wpdb->prefix}erp_standup_tracker";
 
         $month = $request->get_param( 'month' );
         if ( ! $month ) {
             $month = gmdate( 'Y-m' );
         }
 
-        // Group by date to get stats
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is a $wpdb->prefix-constructed identifier.
-        $sql = $wpdb->prepare(
-            "
-            SELECT standup_date,
-                   SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) as present_count,
-                   SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absent_count,
-                   SUM(CASE WHEN status = 'leave' THEN 1 ELSE 0 END) as leave_count
-            FROM $table
-            WHERE standup_date LIKE %s
-            GROUP BY standup_date
-            ORDER BY standup_date DESC
-        ", $month . '%'
+        // Group by date to get stats.
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "
+                SELECT standup_date,
+                       SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) as present_count,
+                       SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absent_count,
+                       SUM(CASE WHEN status = 'leave' THEN 1 ELSE 0 END) as leave_count
+                FROM {$wpdb->prefix}erp_standup_tracker
+                WHERE standup_date LIKE %s
+                GROUP BY standup_date
+                ORDER BY standup_date DESC
+            ",
+                $month . '%'
+            ),
+            ARRAY_A
         );
-        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
-        $results = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
         return rest_ensure_response( $results );
     }
@@ -154,25 +152,28 @@ class StandupTrackerController {
 
         global $wpdb;
 
-        // Fetch employees who have a shift on this date
-        // Similar to erp_att_get_single_day_attendance
-        $sql = $wpdb->prepare(
-            "
-            SELECT 
-                ds.user_id as employee_id,
-                umeta.meta_value as first_name,
-                umeta2.meta_value as last_name,
-                st.status as standup_status
-            FROM {$wpdb->prefix}erp_attendance_date_shift AS ds
-            LEFT JOIN {$wpdb->prefix}erp_attendance_shifts AS shift ON ds.shift_id = shift.id
-            LEFT JOIN {$wpdb->prefix}usermeta AS umeta ON (umeta.user_id = ds.user_id AND umeta.meta_key = 'first_name')
-            LEFT JOIN {$wpdb->prefix}usermeta AS umeta2 ON (umeta2.user_id = ds.user_id AND umeta2.meta_key = 'last_name')
-            LEFT JOIN {$wpdb->prefix}erp_standup_tracker AS st ON (st.employee_id = ds.user_id AND st.standup_date = %s)
-            WHERE shift.status = 1 AND ds.date = %s
-        ", $date, $date
+        // Fetch employees who have a shift on this date.
+        // Similar to erp_att_get_single_day_attendance.
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "
+                SELECT 
+                    ds.user_id as employee_id,
+                    umeta.meta_value as first_name,
+                    umeta2.meta_value as last_name,
+                    st.status as standup_status
+                FROM {$wpdb->prefix}erp_attendance_date_shift AS ds
+                LEFT JOIN {$wpdb->prefix}erp_attendance_shifts AS shift ON ds.shift_id = shift.id
+                LEFT JOIN {$wpdb->prefix}usermeta AS umeta ON (umeta.user_id = ds.user_id AND umeta.meta_key = 'first_name')
+                LEFT JOIN {$wpdb->prefix}usermeta AS umeta2 ON (umeta2.user_id = ds.user_id AND umeta2.meta_key = 'last_name')
+                LEFT JOIN {$wpdb->prefix}erp_standup_tracker AS st ON (st.employee_id = ds.user_id AND st.standup_date = %s)
+                WHERE shift.status = 1 AND ds.date = %s
+            ",
+                $date,
+                $date
+            ),
+            ARRAY_A
         );
-
-        $results = $wpdb->get_results( $sql, ARRAY_A );
 
         // Format names
         foreach ( $results as &$row ) {
@@ -273,39 +274,39 @@ class StandupTrackerController {
     public function get_report( WP_REST_Request $request ) {
         $month = $request->get_param( 'month' );
         global $wpdb;
-        $table    = "{$wpdb->prefix}erp_standup_tracker";
-        $usermeta = "{$wpdb->prefix}usermeta";
 
         // Total Working Days for the month (unique days with entries)
         $total_working_days = $wpdb->get_var(
             $wpdb->prepare(
                 "
             SELECT COUNT(DISTINCT standup_date) 
-            FROM $table 
+            FROM {$wpdb->prefix}erp_standup_tracker
             WHERE standup_date LIKE %s
         ", $month . '%'
             )
         );
 
         // Aggregate counts per employee
-        $sql = $wpdb->prepare(
-            "
-            SELECT 
-                st.employee_id,
-                TRIM(CONCAT(um1.meta_value, ' ', um2.meta_value)) as name,
-                SUM(CASE WHEN st.status = 'present' THEN 1 ELSE 0 END) as attend,
-                SUM(CASE WHEN st.status = 'absent' THEN 1 ELSE 0 END) as absent,
-                SUM(CASE WHEN st.status = 'leave' THEN 1 ELSE 0 END) as `leave`
-            FROM $table st
-            LEFT JOIN $usermeta um1 ON (um1.user_id = st.employee_id AND um1.meta_key = 'first_name')
-            LEFT JOIN $usermeta um2 ON (um2.user_id = st.employee_id AND um2.meta_key = 'last_name')
-            WHERE st.standup_date LIKE %s
-            GROUP BY st.employee_id
-            ORDER BY name ASC
-        ", $month . '%'
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "
+                SELECT 
+                    st.employee_id,
+                    TRIM(CONCAT(um1.meta_value, ' ', um2.meta_value)) as name,
+                    SUM(CASE WHEN st.status = 'present' THEN 1 ELSE 0 END) as attend,
+                    SUM(CASE WHEN st.status = 'absent' THEN 1 ELSE 0 END) as absent,
+                    SUM(CASE WHEN st.status = 'leave' THEN 1 ELSE 0 END) as `leave`
+                FROM {$wpdb->prefix}erp_standup_tracker st
+                LEFT JOIN {$wpdb->prefix}usermeta um1 ON (um1.user_id = st.employee_id AND um1.meta_key = 'first_name')
+                LEFT JOIN {$wpdb->prefix}usermeta um2 ON (um2.user_id = st.employee_id AND um2.meta_key = 'last_name')
+                WHERE st.standup_date LIKE %s
+                GROUP BY st.employee_id
+                ORDER BY name ASC
+            ",
+                $month . '%'
+            ),
+            ARRAY_A
         );
-
-        $results = $wpdb->get_results( $sql, ARRAY_A );
 
         return rest_ensure_response(
             [
