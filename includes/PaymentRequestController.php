@@ -14,6 +14,13 @@ class PaymentRequestController {
     protected $namespace = 'erp-app/v1';
 
     /**
+     * Cache for existence of created_by column in payment requests table.
+     *
+     * @var bool|null
+     */
+    private $has_created_by_column = null;
+
+    /**
      * Allowed attachment MIME types
      */
     const ALLOWED_MIME_TYPES = [ 'application/pdf', 'image/jpeg', 'image/png' ];
@@ -30,7 +37,7 @@ class PaymentRequestController {
 				[
 					'methods'             => WP_REST_Server::CREATABLE,
 					'callback'            => [ $this, 'create_request' ],
-					'permission_callback' => [ $this, 'employee_permission' ],
+                    'permission_callback' => [ $this, 'create_permission' ],
 				],
 				[
 					'methods'             => WP_REST_Server::READABLE,
@@ -78,6 +85,10 @@ class PaymentRequestController {
         return current_user_can( 'erp_list_employee' );
     }
 
+    public function create_permission() {
+        return current_user_can( 'erp_list_employee' ) || $this->hr_permission();
+    }
+
     public function hr_permission() {
         return current_user_can( 'erp_manage_hr_settings' ) || current_user_can( 'manage_options' );
     }
@@ -88,10 +99,17 @@ class PaymentRequestController {
      * POST /payment-requests — submit a new request
      */
     public function create_request( WP_REST_Request $request ) {
-        $title          = sanitize_text_field( $request->get_param( 'title' ) );
-        $amount         = (float) $request->get_param( 'amount' );
-        $description    = sanitize_textarea_field( $request->get_param( 'description' ) );
-        $attachment_ids = array_map( 'absint', (array) $request->get_param( 'attachment_ids' ) );
+        if ( ! $this->maybe_add_created_by_column() ) {
+            return new WP_Error( 'schema_init_failed', __( 'Failed to initialize request metadata. Please try again.', 'wp-erp-app-helper' ), [ 'status' => 500 ] );
+        }
+
+        $is_hr_manager     = $this->hr_permission();
+        $title             = sanitize_text_field( $request->get_param( 'title' ) );
+        $amount            = (float) $request->get_param( 'amount' );
+        $description       = sanitize_textarea_field( $request->get_param( 'description' ) );
+        $purchase_date     = sanitize_text_field( $request->get_param( 'purchase_date' ) );
+        $expect_payment_by = sanitize_text_field( $request->get_param( 'expect_payment_by' ) );
+        $attachment_ids    = array_map( 'absint', (array) $request->get_param( 'attachment_ids' ) );
 
         if ( empty( $title ) ) {
             return new WP_Error( 'missing_title', __( 'Title is required.', 'wp-erp-app-helper' ), [ 'status' => 400 ] );
@@ -106,9 +124,17 @@ class PaymentRequestController {
             return new WP_Error( 'missing_attachments', __( 'At least one attachment is required.', 'wp-erp-app-helper' ), [ 'status' => 400 ] );
         }
 
-        $validation = $this->validate_attachments( $attachment_ids );
+        $validation = $this->validate_attachments( $attachment_ids, $is_hr_manager );
         if ( is_wp_error( $validation ) ) {
             return new WP_Error( $validation->get_error_code(), $validation->get_error_message(), [ 'status' => 400 ] );
+        }
+
+        $employee_id = get_current_user_id();
+        if ( $is_hr_manager ) {
+            $employee_id = absint( $request->get_param( 'employee_id' ) );
+            if ( ! $employee_id || ! get_userdata( $employee_id ) ) {
+                return new WP_Error( 'invalid_employee', __( 'Please select a valid employee.', 'wp-erp-app-helper' ), [ 'status' => 400 ] );
+            }
         }
 
         global $wpdb;
@@ -117,16 +143,23 @@ class PaymentRequestController {
         $wpdb->insert(
             "{$wpdb->prefix}erp_payment_requests",
             [
-                'employee_id' => get_current_user_id(),
-                'title'       => $title,
-                'amount'      => $amount,
-                'description' => $description,
-                'status'      => 'pending',
-                'created_at'  => $now,
-                'updated_at'  => $now,
+                'employee_id'       => $employee_id,
+                'created_by'        => get_current_user_id(),
+                'title'             => $title,
+                'amount'            => $amount,
+                'description'       => $description,
+                'purchase_date'     => $purchase_date,
+                'expect_payment_by' => $expect_payment_by,
+                'status'            => 'pending',
+                'created_at'        => $now,
+                'updated_at'        => $now,
             ],
-            [ '%d', '%s', '%f', '%s', '%s', '%s', '%s' ]
+            [ '%d', '%d', '%s', '%f', '%s', '%s', '%s', '%s', '%s', '%s' ]
         );
+
+        if ( ! $wpdb->insert_id ) {
+            return new WP_Error( 'insert_failed', __( 'Failed to save request.', 'wp-erp-app-helper' ), [ 'status' => 500 ] );
+        }
 
         $request_id = $wpdb->insert_id;
 
@@ -159,6 +192,9 @@ class PaymentRequestController {
      */
     public function get_own_requests( WP_REST_Request $request ) {
         global $wpdb;
+
+        // Touch the request object so the callback signature remains explicit.
+        $request->get_route();
 
         $rows = $wpdb->get_results(
             $wpdb->prepare(
@@ -369,7 +405,7 @@ class PaymentRequestController {
      *
      * @return true|\WP_Error
      */
-    public function validate_attachments( array $attachment_ids ) {
+    public function validate_attachments( array $attachment_ids, $allow_non_owner = false ) {
         $current_user_id = get_current_user_id();
 
         foreach ( $attachment_ids as $att_id ) {
@@ -380,7 +416,7 @@ class PaymentRequestController {
                 return new WP_Error( 'invalid_attachment', sprintf( __( 'Attachment %d not found.', 'wp-erp-app-helper' ), $att_id ) );
             }
 
-            if ( (int) $post->post_author !== $current_user_id ) {
+            if ( ! $allow_non_owner && (int) $post->post_author !== $current_user_id ) {
                 /* translators: %d: attachment ID */
                 return new WP_Error( 'attachment_ownership', sprintf( __( 'Attachment %d does not belong to you.', 'wp-erp-app-helper' ), $att_id ) );
             }
@@ -411,5 +447,45 @@ class PaymentRequestController {
             'image/png'       => 'png',
         ];
         return isset( $map[ $mime ] ) ? $map[ $mime ] : 'file';
+    }
+
+    /**
+     * Ensure payment request table has created_by column for creator-level permissions.
+     */
+    private function maybe_add_created_by_column() {
+        if ( $this->has_created_by_column() ) {
+            return true;
+        }
+
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}erp_payment_requests";
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange -- DDL ALTER TABLE requires interpolation for identifiers.
+        $result = $wpdb->query( "ALTER TABLE `$table_name` ADD `created_by` bigint(20) UNSIGNED DEFAULT NULL" );
+
+        if ( false === $result ) {
+            return false;
+        }
+
+        $this->has_created_by_column = true;
+        return true;
+    }
+
+    /**
+     * Check if payment request table has created_by column.
+     */
+    private function has_created_by_column() {
+        if ( null !== $this->has_created_by_column ) {
+            return $this->has_created_by_column;
+        }
+
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}erp_payment_requests";
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table/column identifiers cannot be placeholders.
+        $row = $wpdb->get_results( "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '$table_name' AND column_name = 'created_by'" );
+
+        $this->has_created_by_column = ! empty( $row );
+        return $this->has_created_by_column;
     }
 }

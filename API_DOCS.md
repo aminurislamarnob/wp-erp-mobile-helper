@@ -219,17 +219,17 @@ The plugin augments leave API responses with intermediate approval metadata.
 
 - **Example (item excerpt):**
   `json
-      {
-          "id": 123,
-          "message": "Waiting for additional approval from John Doe",
-          "required_approval": {
-              "approver_id": 45,
-              "approver_name": "John Doe",
-              "status": "Pending"
-          },
-          "required_approval_message": "Waiting for additional approval from John Doe"
-      }
-      `
+    {
+        "id": 123,
+        "message": "Waiting for additional approval from John Doe",
+        "required_approval": {
+            "approver_id": 45,
+            "approver_name": "John Doe",
+            "status": "Pending"
+        },
+        "required_approval_message": "Waiting for additional approval from John Doe"
+    }
+    `
 
 ### B) Admin AJAX Endpoints (Write)
 
@@ -247,13 +247,13 @@ These endpoints are used by the ERP admin UI (`/wp-admin/admin-ajax.php`) for re
   - `nonce` (required)
 - **Response (success):**
   `json
-      {
-          "success": true,
-          "data": [
-              { "id": 12, "name": "Team Lead Name" }
-          ]
-      }
-      `
+    {
+        "success": true,
+        "data": [
+            { "id": 12, "name": "Team Lead Name" }
+        ]
+    }
+    `
 
 #### 2) Save Required Approver
 
@@ -304,14 +304,21 @@ All routes below are under: `https://your-site.com/wp-json/erp-app/v1`
 
 - **Endpoint:** `POST /payment-requests`
 - **Headers:** `Authorization: Bearer <token>`
-- **Permission:** `erp_list_employee`
+- **Permission:** `erp_list_employee` or `erp_manage_hr_settings` or `manage_options`
 - **Body Parameters:**
   | Parameter | Type | Required | Description |
   | :--- | :--- | :--- | :--- |
   | `title` | `string` | Yes | Request title. |
   | `amount` | `number` | Yes | Must be greater than 0. |
   | `description` | `string` | Yes | Request details. |
-  | `attachment_ids` | `array<int>` | Yes | WordPress media attachment IDs owned by requester. |
+  | `purchase_date` | `string` | No | Date in `Y-m-d` format. |
+  | `expect_payment_by` | `string` | No | Date in `Y-m-d` format. |
+  | `attachment_ids` | `array<int>` | Yes | WordPress media attachment IDs (PDF/JPG/PNG, max 10 MB each). |
+  | `employee_id` | `int` | Conditional | Required for HR/admin submit; target employee user ID. |
+- **HR Rules:**
+  - HR/admin can submit requests on behalf of an employee by passing `employee_id`.
+  - For HR/admin submit, attachment ownership is not restricted to current user (attachment must still exist and pass type/size validation).
+  - Submitted rows store `created_by` as the acting user for downstream creator-based edit rules.
 - **Response (201):** Standard payment request object.
 
 #### 2) List Own Payment Requests
@@ -397,7 +404,8 @@ All routes below are under: `https://your-site.com/wp-json/erp-app/v1`
   - `purchase_date` (optional)
   - `expect_payment_by` (optional)
   - `attachment_ids[]` (required)
-- **Permission:** `erp_list_employee`
+- **Permission:** `erp_list_employee` or `erp_manage_hr_settings` or `manage_options`
+- **HR Rule:** When submitted by HR/admin, `employee_id` is required and must be a valid user.
 - **Response:**
   - Success: `{"success": true, "data": {"id": 41}}`
 
@@ -413,8 +421,9 @@ All routes below are under: `https://your-site.com/wp-json/erp-app/v1`
   - `purchase_date` (optional)
   - `expect_payment_by` (optional)
   - `attachment_ids[]` (required)
-- **Permission:** `erp_list_employee`
+- **Permission:** `erp_list_employee` or `erp_manage_hr_settings` or `manage_options`
 - **Rule:** Only `pending` requests can be edited.
+- **HR Edit Rule:** HR/admin can edit a pending request only if they are the original creator of that request (`created_by` matches current user). Employees can edit only their own pending requests.
 - **Response:**
   - Success: `{"success": true, "data": {"id": 41}}`
 

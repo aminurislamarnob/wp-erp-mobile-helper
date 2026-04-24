@@ -316,6 +316,14 @@
     color: #333;
 }
 
+.select2-container {
+    z-index: 100001;
+}
+
+.select2-dropdown {
+    z-index: 100002;
+}
+
 .erp-app-helper-form-group textarea {
     width: 100%;
     padding: 10px;
@@ -354,6 +362,35 @@
 
 .erp-pr-form-modal-inner .erp-app-helper-form-group textarea {
     resize: vertical;
+}
+
+.erp-pr-form-modal-inner .select2-container {
+    width: 100% !important;
+}
+
+.erp-pr-form-modal-inner .select2-container .select2-selection--single {
+    height: 36px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-sizing: border-box;
+}
+
+.erp-pr-form-modal-inner .select2-container .select2-selection__rendered {
+    line-height: 34px;
+    padding-left: 10px;
+    font-size: 14px;
+    color: #32373c;
+}
+
+.erp-pr-form-modal-inner .select2-container .select2-selection__arrow {
+    height: 34px;
+    right: 6px;
+}
+
+.erp-pr-form-modal-inner .select2-container.select2-container--focus .select2-selection--single,
+.erp-pr-form-modal-inner .select2-container--open .select2-selection--single {
+    border-color: #72aee6;
+    box-shadow: 0 0 0 1px #72aee6;
 }
 
 #erp-pr-form-modal-messages .notice {

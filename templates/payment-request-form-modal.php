@@ -29,6 +29,28 @@ defined( 'ABSPATH' ) || exit;
             <form id="erp-pr-submit-form">
                 <input type="hidden" id="erp-pr-request-id" name="request_id" value="0" />
 
+                <?php if ( current_user_can( 'erp_manage_hr_settings' ) || current_user_can( 'manage_options' ) ) : ?>
+                    <?php
+                    $employees = function_exists( 'erp_hr_get_employees' ) ? erp_hr_get_employees(
+                        [
+                            'number'    => -1,
+                            'no_object' => true,
+                        ]
+                    ) : [];
+                    ?>
+                    <div class="erp-app-helper-form-group">
+                        <label for="erp-pr-employee-id"><?php esc_html_e( 'Employee', 'wp-erp-app-helper' ); ?> <span class="required">*</span></label>
+                        <select id="erp-pr-employee-id" name="employee_id" class="widefat erp-select2" data-placeholder="<?php esc_attr_e( 'Select employee', 'wp-erp-app-helper' ); ?>">
+                            <option value=""><?php esc_html_e( 'Select employee', 'wp-erp-app-helper' ); ?></option>
+                            <?php foreach ( $employees as $employee ) : ?>
+                                <option value="<?php echo esc_attr( $employee->user_id ); ?>" <?php selected( (int) $employee->user_id, get_current_user_id() ); ?>>
+                                    <?php echo esc_html( $employee->display_name ); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                <?php endif; ?>
+
                 <div class="erp-app-helper-form-group">
                     <label for="erp-pr-title"><?php esc_html_e( 'Title', 'wp-erp-app-helper' ); ?> <span class="required">*</span></label>
                     <input type="text" id="erp-pr-title" name="title" class="widefat"

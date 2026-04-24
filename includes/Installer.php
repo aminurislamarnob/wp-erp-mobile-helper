@@ -60,6 +60,7 @@ class Installer {
         $sql = "CREATE TABLE IF NOT EXISTS `{$wpdb->prefix}erp_payment_requests` (
             `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             `employee_id` bigint(20) unsigned NOT NULL,
+            `created_by` bigint(20) unsigned DEFAULT NULL,
             `title` varchar(255) NOT NULL,
             `amount` decimal(10,2) NOT NULL DEFAULT '0.00',
             `description` text NOT NULL,
@@ -122,6 +123,7 @@ class Installer {
 
         $pr_table   = "{$wpdb->prefix}erp_payment_requests";
         $pr_columns = [
+            'created_by'        => 'bigint(20) UNSIGNED DEFAULT NULL',
             'payment_type'      => 'varchar(50) DEFAULT NULL',
             'purchase_date'     => 'date DEFAULT NULL',
             'expect_payment_by' => 'date DEFAULT NULL',

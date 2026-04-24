@@ -7,6 +7,13 @@ namespace WeLabs\WpErpAppHelper;
 class PaymentRequestManager {
 
     /**
+     * Cache for existence of created_by column in payment requests table.
+     *
+     * @var bool|null
+     */
+    private $has_created_by_column = null;
+
+    /**
      * Allowed attachment MIME types
      */
     const ALLOWED_MIME_TYPES = [ 'application/pdf', 'image/jpeg', 'image/png' ];
@@ -70,6 +77,10 @@ class PaymentRequestManager {
      */
     public function render_leave_calendar_button() {
         if ( ! current_user_can( 'erp_list_employee' ) ) {
+            return;
+        }
+
+        if ( current_user_can( 'erp_manage_hr_settings' ) || current_user_can( 'manage_options' ) ) {
             return;
         }
         ?>
@@ -158,7 +169,12 @@ class PaymentRequestManager {
         $list_table->prepare_items();
         ?>
         <div class="wrap">
-            <h2><?php esc_html_e( 'Payment Requests', 'wp-erp-app-helper' ); ?></h2>
+            <h2>
+                <?php esc_html_e( 'Payment Requests', 'wp-erp-app-helper' ); ?>
+                <a href="#" class="page-title-action" id="erp-pr-open-form-modal">
+                    <?php esc_html_e( 'Add New', 'wp-erp-app-helper' ); ?>
+                </a>
+            </h2>
 
             <?php $list_table->views(); ?>
 
@@ -288,6 +304,7 @@ class PaymentRequestManager {
 				'i18n'     => [
 					'newTitle'          => __( 'New Bill Request', 'wp-erp-app-helper' ),
 					'editTitle'         => __( 'Edit Bill Request', 'wp-erp-app-helper' ),
+                    'selectEmployee'    => __( 'Please select an employee.', 'wp-erp-app-helper' ),
 					'selectFiles'       => __( 'Select Files', 'wp-erp-app-helper' ),
 					'attachFiles'       => __( 'Attach Files', 'wp-erp-app-helper' ),
 					'fileTooLarge'      => __( 'File "{name}" exceeds the 10 MB size limit.', 'wp-erp-app-helper' ),
@@ -317,8 +334,14 @@ class PaymentRequestManager {
     public function ajax_submit_payment_request() {
         check_ajax_referer( 'erp-payment-request-nonce', 'nonce' );
 
-        if ( ! current_user_can( 'erp_list_employee' ) ) {
+        $is_hr_manager = current_user_can( 'erp_manage_hr_settings' ) || current_user_can( 'manage_options' );
+
+        if ( ! current_user_can( 'erp_list_employee' ) && ! $is_hr_manager ) {
             wp_send_json_error( __( 'Permission denied.', 'wp-erp-app-helper' ) );
+        }
+
+        if ( ! $this->maybe_add_created_by_column() ) {
+            wp_send_json_error( __( 'Failed to initialize request metadata. Please try again.', 'wp-erp-app-helper' ) );
         }
 
         $title              = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
@@ -332,9 +355,17 @@ class PaymentRequestManager {
             wp_send_json_error( __( 'Title, a positive amount, description, and at least one attachment are required.', 'wp-erp-app-helper' ) );
         }
 
-        $validation_error = $this->validate_attachments( $attachment_ids );
+        $validation_error = $this->validate_attachments( $attachment_ids, $is_hr_manager );
         if ( is_wp_error( $validation_error ) ) {
             wp_send_json_error( $validation_error->get_error_message() );
+        }
+
+        $employee_id = get_current_user_id();
+        if ( $is_hr_manager ) {
+            $employee_id = isset( $_POST['employee_id'] ) ? absint( $_POST['employee_id'] ) : 0;
+            if ( ! $employee_id || ! get_userdata( $employee_id ) ) {
+                wp_send_json_error( __( 'Please select a valid employee.', 'wp-erp-app-helper' ) );
+            }
         }
 
         global $wpdb;
@@ -343,7 +374,8 @@ class PaymentRequestManager {
         $inserted = $wpdb->insert(
             "{$wpdb->prefix}erp_payment_requests",
             [
-                'employee_id'       => get_current_user_id(),
+                'employee_id'       => $employee_id,
+                'created_by'        => get_current_user_id(),
                 'title'             => $title,
                 'amount'            => $amount,
                 'description'       => $description,
@@ -353,7 +385,7 @@ class PaymentRequestManager {
                 'created_at'        => $now,
                 'updated_at'        => $now,
             ],
-            [ '%d', '%s', '%f', '%s', '%s', '%s', '%s', '%s', '%s' ]
+            [ '%d', '%d', '%s', '%f', '%s', '%s', '%s', '%s', '%s', '%s' ]
         );
 
         if ( ! $inserted ) {
@@ -385,8 +417,14 @@ class PaymentRequestManager {
     public function ajax_update_payment_request() {
         check_ajax_referer( 'erp-payment-request-nonce', 'nonce' );
 
-        if ( ! current_user_can( 'erp_list_employee' ) ) {
+        $is_hr_manager = current_user_can( 'erp_manage_hr_settings' ) || current_user_can( 'manage_options' );
+
+        if ( ! current_user_can( 'erp_list_employee' ) && ! $is_hr_manager ) {
             wp_send_json_error( __( 'Permission denied.', 'wp-erp-app-helper' ) );
+        }
+
+        if ( ! $this->maybe_add_created_by_column() ) {
+            wp_send_json_error( __( 'Failed to initialize request metadata. Please try again.', 'wp-erp-app-helper' ) );
         }
 
         $request_id         = isset( $_POST['request_id'] ) ? absint( $_POST['request_id'] ) : 0;
@@ -416,7 +454,10 @@ class PaymentRequestManager {
         if ( ! $request ) {
             wp_send_json_error( __( 'Request not found.', 'wp-erp-app-helper' ) );
         }
-        if ( (int) $request->employee_id !== get_current_user_id() ) {
+        $is_owner      = (int) $request->employee_id === get_current_user_id();
+        $is_hr_creator = $is_hr_manager && ! empty( $request->created_by ) && (int) $request->created_by === get_current_user_id();
+
+        if ( ! $is_owner && ! $is_hr_creator ) {
             wp_send_json_error( __( 'Permission denied.', 'wp-erp-app-helper' ) );
         }
         if ( 'pending' !== $request->status ) {
@@ -425,7 +466,7 @@ class PaymentRequestManager {
 
         // Validate new attachment set — allow attachments already owned by current user
         // (includes previously saved ones which keep their post_author)
-        $validation_error = $this->validate_attachments( $attachment_ids );
+        $validation_error = $this->validate_attachments( $attachment_ids, $is_hr_creator );
         if ( is_wp_error( $validation_error ) ) {
             wp_send_json_error( $validation_error->get_error_message() );
         }
@@ -603,7 +644,7 @@ class PaymentRequestManager {
      *
      * @return true|\WP_Error
      */
-    public function validate_attachments( array $attachment_ids ) {
+    public function validate_attachments( array $attachment_ids, $allow_non_owner = false ) {
         $current_user_id = get_current_user_id();
 
         foreach ( $attachment_ids as $att_id ) {
@@ -614,7 +655,7 @@ class PaymentRequestManager {
                 return new \WP_Error( 'invalid_attachment', sprintf( __( 'Attachment %d not found.', 'wp-erp-app-helper' ), $att_id ) );
             }
 
-            if ( (int) $post->post_author !== $current_user_id ) {
+            if ( ! $allow_non_owner && (int) $post->post_author !== $current_user_id ) {
                 /* translators: %d: attachment ID */
                 return new \WP_Error( 'attachment_ownership', sprintf( __( 'Attachment %d does not belong to you.', 'wp-erp-app-helper' ), $att_id ) );
             }
@@ -645,5 +686,45 @@ class PaymentRequestManager {
             'image/png'       => 'png',
         ];
         return isset( $map[ $mime ] ) ? $map[ $mime ] : 'file';
+    }
+
+    /**
+     * Ensure payment request table has created_by column for creator-level permissions.
+     */
+    private function maybe_add_created_by_column() {
+        if ( $this->has_created_by_column() ) {
+            return true;
+        }
+
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}erp_payment_requests";
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange -- DDL ALTER TABLE requires interpolation for identifiers.
+        $result = $wpdb->query( "ALTER TABLE `$table_name` ADD `created_by` bigint(20) UNSIGNED DEFAULT NULL" );
+
+        if ( false === $result ) {
+            return false;
+        }
+
+        $this->has_created_by_column = true;
+        return true;
+    }
+
+    /**
+     * Check if payment request table has created_by column.
+     */
+    private function has_created_by_column() {
+        if ( null !== $this->has_created_by_column ) {
+            return $this->has_created_by_column;
+        }
+
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}erp_payment_requests";
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table/column identifiers cannot be placeholders.
+        $row = $wpdb->get_results( "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '$table_name' AND column_name = 'created_by'" );
+
+        $this->has_created_by_column = ! empty( $row );
+        return $this->has_created_by_column;
     }
 }
