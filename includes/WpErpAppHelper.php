@@ -195,6 +195,7 @@ final class WpErpAppHelper {
         $this->container['leave_approval'] = new LeaveApprovalManager();
         $this->container['payment_requests'] = new PaymentRequestManager();
         $this->container['payment_request_api'] = new PaymentRequestController();
+        $this->container['standup_log'] = new StandupLogManager();
     }
 
     /**

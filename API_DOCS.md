@@ -57,7 +57,7 @@ Revoke the current app auth token. Requires valid Bearer token.
 
 ## Standup Tracker
 
-All standup tracker endpoints require the `erp_manage_standup` permission and a valid Bearer token.
+Endpoints 1–5 require the `erp_manage_standup` permission and a valid Bearer token. Endpoint 6 (`/standup/my-log`) requires only a valid Bearer token (any authenticated user).
 
 ### 1. Get History
 
@@ -170,6 +170,66 @@ Get aggregate report for a month.
       }
     ]
   }
+  ```
+
+### 6. Get My Standup Log
+
+Fetch the current authenticated user's own standup records. Supports filtering by calendar month or an arbitrary date range. Future dates are silently capped at today server-side.
+
+- **Endpoint:** `GET /standup/my-log`
+- **Headers:** `Authorization: Bearer <token>`
+- **Permission:** Any authenticated user (Bearer token required).
+- **Query Parameters:**
+
+  `month` takes precedence over `from`/`to` when both are present.
+
+  | Parameter | Type | Required | Description |
+  | :--- | :--- | :--- | :--- |
+  | `month` | `string` | No | Format `Y-m` (e.g., `2026-04`). Returns all records for that calendar month. Defaults to current month when no parameters are supplied. |
+  | `from` | `string` | No | Format `Y-m-d`. Range start (inclusive). Defaults to first day of current month. |
+  | `to` | `string` | No | Format `Y-m-d`. Range end (inclusive). Defaults to last day of current month. |
+
+- **Response (200 OK):**
+  ```json
+  {
+    "employee_id": 5,
+    "filter": {
+      "type": "month",
+      "value": "2026-04"
+    },
+    "summary": {
+      "present": 12,
+      "absent": 3,
+      "leave": 2,
+      "total": 17
+    },
+    "logs": [
+      { "date": "2026-04-24", "status": "present" },
+      { "date": "2026-04-23", "status": "leave" },
+      { "date": "2026-04-22", "status": "absent" }
+    ]
+  }
+  ```
+
+  When filtered by a date range, `filter` reflects the resolved bounds:
+  ```json
+  {
+    "filter": {
+      "type": "range",
+      "from": "2026-01-01",
+      "to": "2026-04-30"
+    }
+  }
+  ```
+
+- **Status values:** `present` | `absent` | `leave`
+
+- **Example requests:**
+  ```
+  GET /standup/my-log
+  GET /standup/my-log?month=2026-03
+  GET /standup/my-log?from=2026-01-01&to=2026-04-30
+  GET /standup/my-log?from=2026-04-01
   ```
 
 ---

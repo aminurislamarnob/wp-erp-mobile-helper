@@ -97,10 +97,50 @@ class StandupTrackerController {
 				],
 			]
         );
+
+        // Current-user standup log with optional date filters (employee-facing).
+        register_rest_route(
+            $this->namespace, '/' . $this->rest_base . '/my-log', [
+				[
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => [ $this, 'get_my_log' ],
+					'permission_callback' => [ $this, 'check_employee_permission' ],
+					'args'                => [
+						'month' => [
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+							'validate_callback' => [ $this, 'validate_month_param' ],
+						],
+						'from'  => [
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+							'validate_callback' => [ $this, 'validate_date_param' ],
+						],
+						'to'    => [
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+							'validate_callback' => [ $this, 'validate_date_param' ],
+						],
+					],
+				],
+			]
+        );
     }
 
     public function check_permission() {
         return current_user_can( 'erp_manage_standup' );
+    }
+
+    public function check_employee_permission() {
+        return is_user_logged_in();
+    }
+
+    public function validate_month_param( $value ) {
+        return (bool) preg_match( '/^\d{4}-\d{2}$/', $value );
+    }
+
+    public function validate_date_param( $value ) {
+        return (bool) preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value );
     }
 
     /**
@@ -312,6 +352,91 @@ class StandupTrackerController {
             [
 				'total_working_days' => (int) $total_working_days,
 				'stats'              => $results,
+			]
+        );
+    }
+
+    /**
+     * GET /erp-app/v1/standup/my-log
+     *
+     * Returns the current user's standup log.
+     *
+     * Filters (mutually exclusive — month takes precedence):
+     *   ?month=YYYY-MM          All records for a calendar month (default: current month)
+     *   ?from=YYYY-MM-DD        Range start (inclusive)
+     *   ?to=YYYY-MM-DD          Range end   (inclusive)
+     *
+     * All future dates are silently capped at today.
+     */
+    public function get_my_log( WP_REST_Request $request ) {
+        global $wpdb;
+
+        $employee_id = get_current_user_id();
+        $today       = gmdate( 'Y-m-d' );
+
+        $month = $request->get_param( 'month' );
+        $from  = $request->get_param( 'from' );
+        $to    = $request->get_param( 'to' );
+
+        // Resolve the effective date range.
+        if ( $month ) {
+            $from_date = $month . '-01';
+            $to_date   = gmdate( 'Y-m-t', strtotime( $from_date ) ); // last day of month
+            $filter    = [
+				'type' => 'month',
+				'value' => $month,
+			];
+        } else {
+            $from_date = $from ? $from : gmdate( 'Y-m-01' );
+            $to_date   = $to ? $to : gmdate( 'Y-m-t' );
+            $filter    = [
+                'type' => 'range',
+                'from' => $from_date,
+                'to'   => $to_date,
+            ];
+        }
+
+        // Cap future bounds at today.
+        if ( $from_date > $today ) {
+            $from_date = $today;
+        }
+        if ( $to_date > $today ) {
+            $to_date = $today;
+        }
+
+        $logs = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT standup_date AS date, status
+                 FROM {$wpdb->prefix}erp_standup_tracker
+                 WHERE employee_id = %d
+                   AND standup_date BETWEEN %s AND %s
+                 ORDER BY standup_date DESC",
+                $employee_id,
+                $from_date,
+                $to_date
+            ),
+            ARRAY_A
+        );
+
+        $summary = [
+			'present' => 0,
+			'absent' => 0,
+			'leave' => 0,
+			'total' => 0,
+		];
+        foreach ( $logs as $log ) {
+            if ( isset( $summary[ $log['status'] ] ) ) {
+                ++$summary[ $log['status'] ];
+            }
+            ++$summary['total'];
+        }
+
+        return rest_ensure_response(
+            [
+				'employee_id' => $employee_id,
+				'filter'      => $filter,
+				'summary'     => $summary,
+				'logs'        => $logs,
 			]
         );
     }

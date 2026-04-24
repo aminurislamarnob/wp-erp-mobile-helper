@@ -533,3 +533,213 @@
     border-radius: 2px;
     transition: width 2s linear;
 }
+
+/* ── Standup Log Profile Tab ─────────────────────────────────────────────── */
+.erp-sl-wrap {
+    padding: 16px 0;
+}
+
+.erp-sl-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.erp-sl-header h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.erp-sl-month-picker-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.erp-sl-month-picker-wrap #erp-sl-spinner {
+    float: none;
+}
+
+/* Month picker input */
+.erp-sl-month-picker {
+    padding: 5px 10px;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    background: #fff;
+    width: 150px;
+}
+
+.erp-sl-filter-btn {
+    height: 30px;
+    line-height: 28px;
+    padding: 0 12px;
+    font-size: 13px;
+}
+
+/* ── Custom month-grid dropdown ─────────────────────────────────────────── */
+.erp-sl-month-picker-wrap {
+    position: relative;
+}
+
+.erp-sl-dp {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 99999;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    padding: 12px;
+    width: 220px;
+}
+
+.erp-sl-dp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.erp-sl-dp-year {
+    font-weight: 600;
+    font-size: 14px;
+    color: #1d2327;
+}
+
+.erp-sl-dp-nav {
+    background: none;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 1px 8px 3px;
+    color: #2271b1;
+}
+
+.erp-sl-dp-nav:hover:not(:disabled) {
+    background: #f0f0f1;
+}
+
+.erp-sl-dp-nav:disabled {
+    color: #ccc;
+    cursor: default;
+}
+
+.erp-sl-dp-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+}
+
+.erp-sl-dp-month {
+    background: #f6f7f7;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 7px 4px;
+    text-align: center;
+    color: #1d2327;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.erp-sl-dp-month:hover:not(:disabled) {
+    background: #e8f0fb;
+    border-color: #2271b1;
+    color: #2271b1;
+}
+
+.erp-sl-dp-month.is-selected {
+    background: #2271b1;
+    border-color: #2271b1;
+    color: #fff;
+}
+
+.erp-sl-dp-month.is-disabled {
+    color: #ccc;
+    cursor: default;
+    background: #f6f7f7;
+}
+
+/* Summary row */
+.erp-sl-summary {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    padding: 10px 14px;
+    background: #f8f9fa;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    margin-bottom: 14px;
+    font-size: 13px;
+}
+
+.erp-sl-summary-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+}
+
+.erp-sl-summary-present { color: #2e7d32; }
+.erp-sl-summary-absent  { color: #c62828; }
+.erp-sl-summary-leave   { color: #e65100; }
+
+/* Status badges */
+.erp-sl-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.erp-sl-badge-present {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.erp-sl-badge-absent {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.erp-sl-badge-leave {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+/* Table */
+.erp-sl-table {
+    margin-top: 0;
+}
+
+/* Empty state */
+.erp-sl-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #777;
+}
+
+.erp-sl-empty-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: #ccc;
+    display: block;
+    margin: 0 auto 12px;
+}
+
+/* Error text */
+.erp-sl-error {
+    color: #c62828;
+    padding: 10px 0;
+}
