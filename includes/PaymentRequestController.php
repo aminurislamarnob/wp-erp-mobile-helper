@@ -77,6 +77,16 @@ class PaymentRequestController {
 				],
 			]
         );
+
+        register_rest_route(
+            $this->namespace, '/currency', [
+				[
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => [ $this, 'get_currency' ],
+					'permission_callback' => [ $this, 'employee_permission' ],
+				],
+			]
+        );
     }
 
     // ── Permission callbacks ───────────────────────────────────────────────
@@ -206,6 +216,15 @@ class PaymentRequestController {
         $data = array_map( [ $this, 'format_request_response' ], $rows );
 
         return rest_ensure_response( $data );
+    }
+
+    /**
+     * GET /currency — active ERP currency
+     */
+    public function get_currency( WP_REST_Request $request ) {
+        $request->get_route();
+
+        return rest_ensure_response( erp_get_currency() );
     }
 
     /**
