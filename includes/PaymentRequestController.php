@@ -215,7 +215,10 @@ class PaymentRequestController {
 
         $data = array_map( [ $this, 'format_request_response' ], $rows );
 
-        return rest_ensure_response( $data );
+        return rest_ensure_response( [
+            'currency' => erp_get_currency(),
+            'data'     => $data,
+        ] );
     }
 
     /**
@@ -290,7 +293,10 @@ class PaymentRequestController {
             }, $rows
         );
 
-        return rest_ensure_response( $data );
+        return rest_ensure_response( [
+            'currency' => erp_get_currency(),
+            'data'     => $data,
+        ] );
     }
 
     /**
