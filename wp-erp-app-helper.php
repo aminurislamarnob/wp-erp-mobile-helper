@@ -3,7 +3,7 @@
  * Plugin Name: WP ERP App Helper
  * Plugin URI:  https://welabs.dev
  * Description: Custom plugin by weLabs
- * Version: 0.0.1
+ * Version: 1.0.0
  * Author: WeLabs
  * Author URI: https://welabs.dev
  * Text Domain: wp-erp-app-helper
