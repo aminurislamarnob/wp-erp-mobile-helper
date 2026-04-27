@@ -19,11 +19,14 @@ class Standup {
                 return [ 'do_not_allow' ];
             }
 
-            $allowed_roles = [ 'administrator', 'erp_hr_manager', 'erp_crm_manager', 'erp_ac_manager', 'erp_hr_recruitment' ];
-            $has_role = array_intersect( $allowed_roles, $user->roles );
+            // Administrators and HR managers (mirrors ERP's own cap-mapping pattern).
+            if ( user_can( $user_id, 'manage_options' ) || user_can( $user_id, erp_hr_get_manager_role() ) ) {
+                return [ 'exist' ];
+            }
 
-            if ( ! empty( $has_role ) ) {
-                return [ 'exist' ]; // Allow access
+            // Team Lead role gets explicit access.
+            if ( in_array( 'erp_team_lead', $user->roles, true ) ) {
+                return [ 'exist' ];
             }
 
             return [ 'do_not_allow' ];

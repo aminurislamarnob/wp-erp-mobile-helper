@@ -54,11 +54,25 @@ class Roles {
      * @return array
      */
     public function register_custom_role_caps( $caps, $role ) {
-        if ( array_key_exists( $role, $this->custom_roles ) ) {
+        if ( 'erp_team_lead' === $role ) {
+            $caps = $this->get_team_lead_caps();
+        } elseif ( array_key_exists( $role, $this->custom_roles ) ) {
             $caps = $this->get_role_caps();
         }
 
         return $caps;
+    }
+
+    /**
+     * Capability set for the Team Lead role.
+     *
+     * @return array<string, bool>
+     */
+    private function get_team_lead_caps() {
+        return array_merge(
+            $this->get_role_caps(),
+            [ 'erp_manage_standup' => true ]
+        );
     }
 
     /**
@@ -119,12 +133,23 @@ class Roles {
     }
 
     /**
-     * Add all custom roles to WordPress if they don't exist yet.
+     * Add all custom roles to WordPress if they don't exist yet, and sync caps for existing ones.
      */
     public function add_custom_roles_to_wp() {
         foreach ( $this->custom_roles as $slug => $name ) {
-            if ( ! get_role( $slug ) ) {
-                add_role( $slug, __( $name, 'wp-erp-app-helper' ), erp_hr_get_caps_for_role( $slug ) ); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
+            $caps = erp_hr_get_caps_for_role( $slug );
+            $role = get_role( $slug );
+
+            if ( ! $role ) {
+                add_role( $slug, __( $name, 'wp-erp-app-helper' ), $caps ); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
+            } else {
+                foreach ( $caps as $cap => $grant ) {
+                    if ( $grant ) {
+                        $role->add_cap( $cap );
+                    } else {
+                        $role->remove_cap( $cap );
+                    }
+                }
             }
         }
     }
