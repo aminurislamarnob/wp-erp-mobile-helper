@@ -386,7 +386,13 @@ All routes below are under: `https://your-site.com/wp-json/erp-app/v1`
 - **Endpoint:** `GET /payment-requests`
 - **Headers:** `Authorization: Bearer <token>`
 - **Permission:** `erp_list_employee`
-- **Response:** Array of standard payment request objects.
+- **Response:**
+  ```json
+  {
+    "currency": "USD",
+    "data": [ /* standard payment request objects */ ]
+  }
+  ```
 
 #### 3) Get Single Own Payment Request
 
@@ -404,9 +410,22 @@ All routes below are under: `https://your-site.com/wp-json/erp-app/v1`
   | Parameter | Type | Required | Description |
   | :--- | :--- | :--- | :--- |
   | `status` | `string` | No | Filter by status (`pending`, `approved`, `rejected`). |
-- **Response:** Array of standard objects plus `employee_name`.
+- **Response:**
+  ```json
+  {
+    "currency": "USD",
+    "data": [ /* standard payment request objects plus employee_name */ ]
+  }
+  ```
 
-#### 5) HR Review Payment Request
+#### 5) Get Currency
+
+- **Endpoint:** `GET /currency`
+- **Headers:** `Authorization: Bearer <token>`
+- **Permission:** `erp_list_employee`
+- **Response:** Currency code string (e.g., `"USD"`).
+
+#### 6) HR Review Payment Request
 
 - **Endpoint:** `POST /hr/payment-requests/{id}/review`
 - **Headers:** `Authorization: Bearer <token>`
