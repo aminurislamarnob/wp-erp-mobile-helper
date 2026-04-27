@@ -147,10 +147,8 @@ class StandupTrackerController {
      * Helper to validate if date is not in the future
      */
     private function is_not_future( $date_string ) {
-        $date = new \DateTime( $date_string );
-        $now = new \DateTime();
-        $now->setTime( 23, 59, 59 ); // End of today
-        return ( $date <= $now );
+        // Compare against the site's configured timezone, not server UTC
+        return $date_string <= current_time( 'Y-m-d' );
     }
 
     public function get_history( WP_REST_Request $request ) {
