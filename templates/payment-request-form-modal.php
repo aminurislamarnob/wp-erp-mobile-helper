@@ -54,11 +54,18 @@ defined( 'ABSPATH' ) || exit;
                 <div class="erp-app-helper-form-group">
                     <label for="erp-pr-title"><?php esc_html_e( 'Title', 'wp-erp-app-helper' ); ?> <span class="required">*</span></label>
                     <input type="text" id="erp-pr-title" name="title" class="widefat"
-                            placeholder="<?php esc_attr_e( 'e.g. Hotel reimbursement – April 2026', 'wp-erp-app-helper' ); ?>" />
+                            placeholder="<?php esc_attr_e( 'e.g. Claude code subscription', 'wp-erp-app-helper' ); ?>" />
                 </div>
 
                 <div class="erp-app-helper-form-group">
-                    <label for="erp-pr-amount"><?php esc_html_e( 'Amount (BDT)', 'wp-erp-app-helper' ); ?> <span class="required">*</span></label>
+                    <?php $erp_currency = function_exists( 'erp_get_currency' ) ? erp_get_currency() : 'BDT'; ?>
+                    <label for="erp-pr-amount">
+                        <?php
+                        /* translators: %s: currency code e.g. BDT */
+                        printf( esc_html__( 'Amount (%s)', 'wp-erp-app-helper' ), esc_html( $erp_currency ) );
+                        ?>
+                        <span class="required">*</span>
+                    </label>
                     <input type="number" id="erp-pr-amount" name="amount" class="widefat"
                             min="0.01" step="0.01" placeholder="0.00" />
                 </div>
