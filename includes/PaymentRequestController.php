@@ -204,6 +204,7 @@ class PaymentRequestController {
         );
 
         $data = array_map( [ $this, 'format_request_response' ], $rows );
+
         return rest_ensure_response( $data );
     }
 
