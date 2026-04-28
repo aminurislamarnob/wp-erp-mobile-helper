@@ -352,6 +352,43 @@ These endpoints are used by the ERP admin UI (`/wp-admin/admin-ajax.php`) for re
 
 ---
 
+## User Account
+
+### 1. Change Password
+
+Change the authenticated user's password.
+
+- **Endpoint:** `POST /user/change-password`
+- **Headers:** `Authorization: Bearer <token>`
+- **Permission:** Any authenticated user (Bearer token required).
+- **Body Parameters:**
+  | Parameter | Type | Required | Description |
+  | :--- | :--- | :--- | :--- |
+  | `current_password` | `string` | Yes | The user's current password. |
+  | `new_password` | `string` | Yes | The new password (minimum 8 characters, must differ from current). |
+  | `confirm_new_password` | `string` | Yes | Must match `new_password` exactly. |
+
+- **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "message": "Password updated successfully."
+  }
+  ```
+
+- **Error responses:**
+  | Code | Status | Reason |
+  | :--- | :--- | :--- |
+  | `missing_fields` | 400 | Any of the three fields is empty. |
+  | `password_too_short` | 400 | New password is fewer than 8 characters. |
+  | `password_mismatch` | 400 | `new_password` and `confirm_new_password` do not match. |
+  | `same_password` | 400 | New password is identical to the current password. |
+  | `wrong_password` | 403 | `current_password` is incorrect. |
+  | `invalid_user` | 401 | Authenticated user record not found. |
+  | `update_failed` | 500 | Database update failed. |
+
+---
+
 ## Payment Request Management
 
 Payment requests are available via REST endpoints for app clients, and AJAX endpoints for ERP admin screens.
