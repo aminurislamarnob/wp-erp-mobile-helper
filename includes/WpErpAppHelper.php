@@ -111,6 +111,7 @@ final class WpErpAppHelper {
         $this->container['hrm_api']->register_routes();
         $this->container['payment_request_api']->register_routes();
         $this->container['user_api']->register_routes();
+        $this->container['biometric_api']->register_routes();
 	}
 
     /**
@@ -197,6 +198,7 @@ final class WpErpAppHelper {
         $this->container['payment_requests'] = new PaymentRequestManager();
         $this->container['payment_request_api'] = new PaymentRequestController();
         $this->container['user_api']            = new UserController();
+        $this->container['biometric_api']       = new BiometricAuthController();
         $this->container['standup_log']    = new StandupLogManager();
         $this->container['standup_widget'] = new StandupWidget();
     }
