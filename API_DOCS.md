@@ -53,6 +53,72 @@ Revoke the current app auth token. Requires valid Bearer token.
   }
   ```
 
+### 3. Register Biometric Token
+
+After a successful normal login, call this endpoint to obtain a biometric token. The app must store this token in the device's secure storage (iOS Keychain / Android Keystore). Calling this again replaces any previously issued biometric token for the user.
+
+- **Endpoint:** `POST /biometric/register`
+- **Headers:** `Authorization: Bearer <token>`
+- **Permission:** Any authenticated user (Bearer token required).
+- **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "biometric_token": "<64-char-token>"
+  }
+  ```
+
+### 4. Biometric Login
+
+Exchange a biometric token for a fresh auth session. The device OS verifies the fingerprint and only releases the stored token from secure storage on success — the server never handles biometrics directly.
+
+- **Endpoint:** `POST /biometric/login`
+- **Permission:** Public (no Bearer token required).
+- **Body Parameters:**
+  | Parameter | Type | Required | Description |
+  | :--- | :--- | :--- | :--- |
+  | `biometric_token` | `string` | Yes | Token previously obtained from `POST /biometric/register`. |
+
+- **Response (200 OK):** Identical shape to the `/login` response.
+  ```json
+  {
+    "success": true,
+    "token": "a-very-long-random-token-string",
+    "user": {
+      "id": 1,
+      "name": "Admin",
+      "slug": "admin",
+      "roles": ["administrator"],
+      "avatar_urls": {
+        "24": "...",
+        "48": "...",
+        "96": "..."
+      }
+    }
+  }
+  ```
+
+- **Error responses:**
+  | Code | Status | Reason |
+  | :--- | :--- | :--- |
+  | `missing_token` | 400 | `biometric_token` field is empty. |
+  | `invalid_biometric_token` | 401 | Token not found or already revoked. |
+  | `invalid_user` | 401 | Associated user no longer exists. |
+
+### 5. Revoke Biometric Token
+
+Removes the biometric token for the current user. Call this on logout or when the user disables fingerprint login in the app.
+
+- **Endpoint:** `DELETE /biometric/revoke`
+- **Headers:** `Authorization: Bearer <token>`
+- **Permission:** Any authenticated user (Bearer token required).
+- **Response (200 OK):**
+  ```json
+  {
+    "success": true
+  }
+  ```
+
 ---
 
 ## Standup Tracker
