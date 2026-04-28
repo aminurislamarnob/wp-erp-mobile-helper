@@ -36,17 +36,36 @@ class UserController {
             return new WP_Error( 'missing_fields', __( 'All three password fields are required.', 'wp-erp-app-helper' ), [ 'status' => 400 ] );
         }
 
+        if ( strlen( $new_password ) < 8 ) {
+            return new WP_Error( 'password_too_short', __( 'New password must be at least 8 characters.', 'wp-erp-app-helper' ), [ 'status' => 400 ] );
+        }
+
         if ( $new_password !== $confirm_new_password ) {
             return new WP_Error( 'password_mismatch', __( 'New password and confirmation do not match.', 'wp-erp-app-helper' ), [ 'status' => 400 ] );
         }
 
         $user = wp_get_current_user();
 
+        if ( ! $user->exists() ) {
+            return new WP_Error( 'invalid_user', __( 'User not found.', 'wp-erp-app-helper' ), [ 'status' => 401 ] );
+        }
+
         if ( ! wp_check_password( $current_password, $user->user_pass, $user->ID ) ) {
             return new WP_Error( 'wrong_password', __( 'Current password is incorrect.', 'wp-erp-app-helper' ), [ 'status' => 403 ] );
         }
 
-        wp_set_password( $new_password, $user->ID );
+        if ( wp_check_password( $new_password, $user->user_pass, $user->ID ) ) {
+            return new WP_Error( 'same_password', __( 'New password must be different from the current password.', 'wp-erp-app-helper' ), [ 'status' => 400 ] );
+        }
+
+        $result = wp_update_user( [
+            'ID'        => $user->ID,
+            'user_pass' => $new_password,
+        ] );
+
+        if ( is_wp_error( $result ) ) {
+            return new WP_Error( 'update_failed', __( 'Failed to update password. Please try again.', 'wp-erp-app-helper' ), [ 'status' => 500 ] );
+        }
 
         return rest_ensure_response( [
             'success' => true,
