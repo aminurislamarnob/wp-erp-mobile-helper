@@ -110,6 +110,7 @@ final class WpErpAppHelper {
         $this->container['standup_api']->register_routes();
         $this->container['hrm_api']->register_routes();
         $this->container['payment_request_api']->register_routes();
+        $this->container['user_api']->register_routes();
 	}
 
     /**
@@ -195,6 +196,7 @@ final class WpErpAppHelper {
         $this->container['leave_approval'] = new LeaveApprovalManager();
         $this->container['payment_requests'] = new PaymentRequestManager();
         $this->container['payment_request_api'] = new PaymentRequestController();
+        $this->container['user_api']            = new UserController();
         $this->container['standup_log']    = new StandupLogManager();
         $this->container['standup_widget'] = new StandupWidget();
     }
