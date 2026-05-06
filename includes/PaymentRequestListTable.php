@@ -52,6 +52,7 @@ class PaymentRequestListTable extends \WP_List_Table {
             'description' => __( 'Description', 'wp-erp-app-helper' ),
             'attachments' => __( 'Attachments', 'wp-erp-app-helper' ),
             'submitted'   => __( 'Submitted', 'wp-erp-app-helper' ),
+            'expected_payment_date' => __( 'Expected Date', 'wp-erp-app-helper' ),
             'status'      => __( 'Status', 'wp-erp-app-helper' ),
             'actions'     => __( 'Actions', 'wp-erp-app-helper' ),
         ];
@@ -251,6 +252,12 @@ class PaymentRequestListTable extends \WP_List_Table {
                     }
                 }
                 return implode( '<br>', $links );
+
+            case 'expected_payment_date':
+                if ( empty( $item->expect_payment_by ) || '0000-00-00' === $item->expect_payment_by ) {
+                    return '—';
+                }
+                return esc_html( date_i18n( get_option( 'date_format' ), strtotime( $item->expect_payment_by ) ) );
 
             case 'submitted':
                 return esc_html( date_i18n( get_option( 'date_format' ), strtotime( $item->created_at ) ) );
