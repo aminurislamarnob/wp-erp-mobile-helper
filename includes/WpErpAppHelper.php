@@ -14,7 +14,7 @@ final class WpErpAppHelper {
      *
      * @var string
      */
-    public $version = '2.0.1';
+    public $version = '2.1.0';
 
     /**
      * Instance of self
@@ -112,6 +112,8 @@ final class WpErpAppHelper {
         $this->container['payment_request_api']->register_routes();
         $this->container['user_api']->register_routes();
         $this->container['biometric_api']->register_routes();
+        $this->container['notes_api']->register_routes();
+        $this->container['labels_api']->register_routes();
 	}
 
     /**
@@ -201,6 +203,14 @@ final class WpErpAppHelper {
         $this->container['biometric_api']       = new BiometricAuthController();
         $this->container['standup_log']    = new StandupLogManager();
         $this->container['standup_widget'] = new StandupWidget();
+        $this->container['notes_api']      = new Notes\NotesController();
+        $this->container['labels_api']     = new Notes\LabelsController();
+
+        // Run schema upgrade if version changed (covers existing installs that
+        // never re-trigger the activation hook).
+        if ( get_option( Notes\Schema::DB_VERSION_OPTION ) !== Notes\Schema::DB_VERSION ) {
+            ( new Notes\Schema() )->install();
+        }
     }
 
     /**

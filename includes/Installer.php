@@ -2,6 +2,8 @@
 
 namespace WeLabs\WpErpAppHelper;
 
+use WeLabs\WpErpAppHelper\Notes\Schema as NotesSchema;
+
 class Installer {
 
     /**
@@ -10,6 +12,7 @@ class Installer {
     public function run() {
         $this->create_tables();
         $this->add_db_columns();
+        ( new NotesSchema() )->install();
     }
 
     /**

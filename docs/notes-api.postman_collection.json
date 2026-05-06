@@ -1,0 +1,592 @@
+{
+  "info": {
+    "name": "WP-ERP App Helper — Notes & Labels API",
+    "description": "Namespace: erp-app/v1\n\n**Auth flow:**\n1. Call **Login** — saves `token` automatically.\n2. All subsequent requests use `Authorization: Bearer {{token}}` (set at collection level).\n3. Optionally call **Register Biometric** to get a `biometric_token` for fingerprint login.\n\n**Collection variables to set before first run:**\n- `base_url` — site URL, no trailing slash (e.g. `http://wp-erp.test`)\n- `wp_username` — WordPress username\n- `wp_password` — WordPress password\n\nAll other variables (`token`, `biometric_token`, `label_id`, `note_id`, `attachment_id`) are captured automatically by test scripts.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://wp-erp.test" },
+    { "key": "wp_username", "value": "" },
+    { "key": "wp_password", "value": "" },
+    { "key": "token", "value": "" },
+    { "key": "biometric_token", "value": "" },
+    { "key": "label_id", "value": "" },
+    { "key": "note_id", "value": "" },
+    { "key": "attachment_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "description": "Authenticates with username + password. Saves the returned `token` to the collection variable so all subsequent requests are authorized automatically.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('token', json.token);",
+                  "  console.log('Saved token =', json.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{wp_username}}\",\n  \"password\": \"{{wp_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/login",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login — invalid credentials (expect 401)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"wrong\",\n  \"password\": \"wrong\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/login",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "login"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "description": "Revokes the current session token. Requires Bearer token.",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/logout",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "logout"]
+            }
+          }
+        },
+        {
+          "name": "Register Biometric",
+          "description": "Issues a biometric token for the current user. Store this in the device secure keychain. Requires Bearer token. Saves `biometric_token` automatically.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('biometric_token', json.biometric_token);",
+                  "  console.log('Saved biometric_token =', json.biometric_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/biometric/register",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "biometric", "register"]
+            }
+          }
+        },
+        {
+          "name": "Biometric Login",
+          "description": "Exchanges a biometric token (from device keychain) for a fresh session token. No Bearer token needed. Saves the new `token` automatically.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('token', json.token);",
+                  "  console.log('Saved token =', json.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"biometric_token\": \"{{biometric_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/biometric/login",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "biometric", "login"]
+            }
+          }
+        },
+        {
+          "name": "Biometric Login — invalid token (expect 401)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"biometric_token\": \"invalid_token_here\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/biometric/login",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "biometric", "login"]
+            }
+          }
+        },
+        {
+          "name": "Revoke Biometric",
+          "description": "Removes the biometric token for the current user. Requires Bearer token.",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/biometric/revoke",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "biometric", "revoke"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Labels",
+      "item": [
+        {
+          "name": "List labels",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/labels?page=1&per_page=50&search=",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "labels"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "per_page", "value": "50" },
+                { "key": "search", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create label",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('label_id', json.id);",
+                  "  console.log('Saved label_id =', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bug\",\n  \"color\": \"#D73A4A\",\n  \"description\": \"Something is broken\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/labels",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "labels"]
+            }
+          }
+        },
+        {
+          "name": "Create label — duplicate name (expect 409)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"bug\",\n  \"color\": \"#000000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/labels",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "labels"]
+            }
+          }
+        },
+        {
+          "name": "Create label — invalid color (expect 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Red Thing\",\n  \"color\": \"red\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/labels",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "labels"]
+            }
+          }
+        },
+        {
+          "name": "Get label",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/labels/{{label_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "labels", "{{label_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update label",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bug (critical)\",\n  \"color\": \"#ff0000\",\n  \"description\": \"Critical bug requiring immediate attention\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/labels/{{label_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "labels", "{{label_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete label",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/labels/{{label_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "labels", "{{label_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notes",
+      "item": [
+        {
+          "name": "List notes (default)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/notes?page=1&per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "notes"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "per_page", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List notes — filter by labels (AND) + date + search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/notes?label={{label_id}}&date_from=2026-01-01&date_to=2026-12-31&search=quarterly&pinned=false&archived=false&page=1&per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "notes"],
+              "query": [
+                { "key": "label", "value": "{{label_id}}", "description": "Repeat this param to require multiple labels (AND)." },
+                { "key": "date_from", "value": "2026-01-01" },
+                { "key": "date_to", "value": "2026-12-31" },
+                { "key": "search", "value": "quarterly" },
+                { "key": "pinned", "value": "false" },
+                { "key": "archived", "value": "false" },
+                { "key": "page", "value": "1" },
+                { "key": "per_page", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List notes — archived only",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/notes?archived=true",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "notes"],
+              "query": [{ "key": "archived", "value": "true" }]
+            }
+          }
+        },
+        {
+          "name": "Create note",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('note_id', json.id);",
+                  "  console.log('Saved note_id =', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Quarterly review notes\",\n  \"content\": \"<p>Action items from Q2 review.</p>\",\n  \"label_ids\": [{{label_id}}],\n  \"attachment_ids\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/notes",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "notes"]
+            }
+          }
+        },
+        {
+          "name": "Create note — missing title (expect 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"no title here\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/notes",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "notes"]
+            }
+          }
+        },
+        {
+          "name": "Get note",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/notes/{{note_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "notes", "{{note_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update note (title + replace labels)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Quarterly review notes (updated)\",\n  \"label_ids\": [{{label_id}}]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/notes/{{note_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "notes", "{{note_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update note — attach media",
+          "description": "Pass `attachment_ids` of media items YOU uploaded via the Upload Attachment request. The `attachment_id` variable is auto-set by that request.",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"attachment_ids\": [{{attachment_id}}]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/notes/{{note_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "notes", "{{note_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Pin note",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/notes/{{note_id}}/pin",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "notes", "{{note_id}}", "pin"]
+            }
+          }
+        },
+        {
+          "name": "Unpin note",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/notes/{{note_id}}/unpin",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "notes", "{{note_id}}", "unpin"]
+            }
+          }
+        },
+        {
+          "name": "Archive note",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/notes/{{note_id}}/archive",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "notes", "{{note_id}}", "archive"]
+            }
+          }
+        },
+        {
+          "name": "Unarchive note",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/notes/{{note_id}}/unarchive",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "notes", "{{note_id}}", "unarchive"]
+            }
+          }
+        },
+        {
+          "name": "Delete note",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/notes/{{note_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "notes", "{{note_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Export",
+      "item": [
+        {
+          "name": "Export notes — JSON",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/notes/export?format=json",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "notes", "export"],
+              "query": [{ "key": "format", "value": "json" }]
+            }
+          }
+        },
+        {
+          "name": "Export notes — CSV (with filters)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/wp-json/erp-app/v1/notes/export?format=csv&label={{label_id}}&date_from=2026-01-01&date_to=2026-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "erp-app", "v1", "notes", "export"],
+              "query": [
+                { "key": "format", "value": "csv" },
+                { "key": "label", "value": "{{label_id}}" },
+                { "key": "date_from", "value": "2026-01-01" },
+                { "key": "date_to", "value": "2026-12-31" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Media (WP core — for attachment uploads)",
+      "item": [
+        {
+          "name": "Upload attachment",
+          "description": "Upload a file via WP core media endpoint. The returned `id` is saved as `attachment_id` and can be passed to any note's `attachment_ids`.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('attachment_id', json.id);",
+                  "  console.log('Saved attachment_id =', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Disposition", "value": "attachment; filename=\"upload.png\"" }
+            ],
+            "body": {
+              "mode": "file",
+              "file": { "src": "" }
+            },
+            "url": {
+              "raw": "{{base_url}}/wp-json/wp/v2/media",
+              "host": ["{{base_url}}"],
+              "path": ["wp-json", "wp", "v2", "media"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

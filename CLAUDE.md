@@ -94,6 +94,25 @@ Add routes inside `register_rest_route()` — already hooked to `rest_api_init`.
 
 ## Features
 
+### User Notes API
+
+Per-user personal notes with GitHub-style colored labels. REST-only — no admin UI in v1.
+
+**Namespace:** `erp-app/v1` (paths `/notes` and `/labels`)
+
+**DB tables:** `erp_app_helper_notes`, `erp_app_helper_note_labels`, `erp_app_helper_note_label_relationships`, `erp_app_helper_note_attachments`
+
+**Code:** `includes/Notes/` — `Schema`, `LabelsRepository`, `NotesRepository`, `LabelsController`, `NotesController`. Controllers wired in `WpErpAppHelper::init_classes()` as `notes_api` / `labels_api`.
+
+**Highlights:**
+- Labels are first-class per-user resources (`name`, `color #rrggbb`, optional `description`); cap 100 per user, 20 per note.
+- Notes support pin / archive (boolean columns + intent-named POST endpoints), title `LIKE` search, date range, and label AND-filter (`?label=12&label=34`).
+- Attachments are stock WP Media Library items — clients upload via `POST /wp/v2/media`, then pass IDs in `attachment_ids`. Ownership is verified server-side.
+- Export endpoint streams JSON or CSV (capped at 1000 notes; CSV has formula-injection guard).
+- Schema auto-installs on activation and on version-mismatch via `Schema::DB_VERSION_OPTION`.
+
+Full reference: [`docs/notes-api.md`](docs/notes-api.md).
+
 ### Payment Request (Bill Submission) System
 
 Employees submit expense reimbursement requests; HR reviews and approves or rejects them.
